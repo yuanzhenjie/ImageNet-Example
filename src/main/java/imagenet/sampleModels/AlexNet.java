@@ -1,4 +1,4 @@
-package org.dl4j.imagenet.example.sampleModels;
+package imagenet.sampleModels;
 
 import org.deeplearning4j.nn.api.OptimizationAlgorithm;
 import org.deeplearning4j.nn.conf.GradientNormalization;
@@ -19,13 +19,13 @@ import org.nd4j.linalg.lossfunctions.LossFunctions;
  * https://github.com/BVLC/caffe/blob/master/models/bvlc_alexnet/train_val.prototxt
  *
  * Dl4j's AlexNet model interpretation based on the original paper ImageNet Classification with Deep Convolutional Neural Networks
- * and the example code referenced.
+ * and the imagenetExample code referenced.
  *
  * Model is built in dl4j based on available functionality and notes indicate where there are gaps waiting for enhancements.
  * Created by nyghtowl on 9/11/15.
  *
- * Bias initialization in the paper is 1 in certain layers but 0.1 in the example code
- * Weight distribution uses 0.1 std for all layers in the paper but 0.005 in the dense layers in the example code
+ * Bias initialization in the paper is 1 in certain layers but 0.1 in the imagenetExample code
+ * Weight distribution uses 0.1 std for all layers in the paper but 0.005 in the dense layers in the imagenetExample code
  *
  */
 public class AlexNet {
@@ -59,9 +59,7 @@ public class AlexNet {
                 .weightInit(WeightInit.DISTRIBUTION)
                 .dist(new GaussianDistribution(0.0, 0.01))
                 .activation("relu")
-                .updater(Updater.NESTEROVS
-
-                )
+                .updater(Updater.NESTEROVS)
                 .iterations(iterations)
                 .gradientNormalization(GradientNormalization.RenormalizeL2PerLayer) // normalize to prevent vanishing or exploding gradients
                 .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)

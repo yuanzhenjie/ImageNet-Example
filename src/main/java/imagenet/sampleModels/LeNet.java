@@ -1,4 +1,4 @@
-package org.dl4j.imagenet.example.sampleModels;
+package imagenet.sampleModels;
 
 import org.deeplearning4j.nn.api.OptimizationAlgorithm;
 import org.deeplearning4j.nn.conf.GradientNormalization;

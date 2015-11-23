@@ -1,4 +1,4 @@
-package org.dl4j.imagenet.example.sampleModels;
+package imagenet.sampleModels;
 
 import org.deeplearning4j.nn.api.OptimizationAlgorithm;
 import org.deeplearning4j.nn.conf.GradientNormalization;
@@ -21,7 +21,7 @@ import org.nd4j.linalg.lossfunctions.LossFunctions;
  * http://www.robots.ox.ac.uk/~vgg/research/very_deep/
  * https://gist.github.com/ksimonyan/211839e770f7b538e2d8
  *
- * On ImageNet error proven to decrease with depth but plateaued on the 16 weight layer example
+ * On ImageNet error proven to decrease with depth but plateaued on the 16 weight layer imagenetExample
  * Following is based on 16 layer
  *
  * Created by nyghtowl on 9/11/15.

@@ -1,15 +1,9 @@
-package org.dl4j.imagenet.example;
+package imagenet;
 
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.type.TypeReference;
-
-import static org.junit.Assert.*;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.annotation.JsonSerialize;
-import net.didion.jwnl.data.Exc;
+import imagenet.sampleModels.LeNet;
+import imagenet.sampleModels.VGGNetA;
+import imagenet.sampleModels.VGGNetD;
 import org.apache.commons.io.FileUtils;
 import org.canova.api.records.reader.RecordReader;
 import org.canova.api.split.LimitFileSplit;
@@ -25,26 +19,21 @@ import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.optimize.api.IterationListener;
 import org.deeplearning4j.optimize.listeners.ParamAndGradientIterationListener;
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
-import org.dl4j.imagenet.example.sampleModels.AlexNet;
-import org.dl4j.imagenet.example.sampleModels.LeNet;
-import org.dl4j.imagenet.example.sampleModels.VGGNetA;
-import org.dl4j.imagenet.example.sampleModels.VGGNetD;
-import org.json.JSONObject;
+import imagenet.sampleModels.AlexNet;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.nd4j.linalg.api.ndarray.INDArray;
-import org.nd4j.linalg.cpu.complex.ComplexNDArray;
 import org.nd4j.linalg.dataset.DataSet;
 import org.nd4j.linalg.factory.Nd4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.util.parsing.json.JSON;
 
 import java.io.*;
 import java.util.*;
 import java.util.regex.Pattern;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -155,19 +144,12 @@ public class CNNImageNetExample {
 
         if(loadParams) {
             Layer layer;
-//            String[] specificLayers ={ "conv1", "conv2", "conv3", "conv4", "ffn1", "ff2n", "output"};
-//            for(String name: specificLayers) {
-//                layer = model.getLayer(name);
-//                loadParameters(layer, new File(outputPath + File.separator + layer.conf().getLayer().getLayerName() + ".json"));
-//            }
-
-            // Load specific layers for VGGD from VGGA
+            // Load specific layers for VGGD from VGGA - TODO still working out saving and loading
             int[] layerIds = {0,1,3,4,18,19,20};
             for(int layerId: layerIds) {
                 layer = model.getLayer(layerId);
                 loadParameters(layer, new File(outputPath + File.separator + layer.conf().getLayer().getLayerName() + ".json"));
             }
-
         }
 
         // Listeners
@@ -206,8 +188,7 @@ public class CNNImageNetExample {
                         model.fit(epochIter.next(splitTrainNum)); // if spliting test train in same dataset - put size of train in next
                     eval = evaluatePerformance(model, epochIter, numTestExamples, eval);
                 }
-            } else{
-                // track training time
+            } else {
                 startTimeTrain = System.currentTimeMillis();
                 for (int i = 0; i < numEpochs; i++) {
                     for (int j = 0; j < numBatches; j++)
@@ -215,7 +196,6 @@ public class CNNImageNetExample {
                 }
                 endTimeTrain = System.currentTimeMillis();
 
-                // use different data sets for train and test
                 // TODO uncomment code when using full validation set
 //                RecordReader testRecordReader = new ImageNetRecordReader(numColumns, numRows, nChannels, true, labelPath, valLabelMap); // use when pulling from main val for all labels
 //                testRecordReader.initialize(new LimitFileSplit(new File(testData), allForms, totalNumExamples, numCategories, Pattern.quote("_"), 0, new Random(123)));
@@ -223,26 +203,31 @@ public class CNNImageNetExample {
 
                 recordReader.initialize(new LimitFileSplit(new File(testData), allForms, totalTestNumExamples, numCategories, Pattern.quote("_"), 0, new Random(123)));
                 testIter = new RecordReaderDataSetIterator(recordReader, batchSize, numRows * numColumns * nChannels, 1860);
-
                 MultipleEpochsIterator testEpochIter = new MultipleEpochsIterator(numEpochs, testIter);
 
-                // track evaluating time
-//                startTimeEval = System.currentTimeMillis();
-//                eval = evaluatePerformance(model, testEpochIter, batchSize, eval);
-//
-//                endTimeEval = System.currentTimeMillis();
-
+                startTimeEval = System.currentTimeMillis();
+                eval = evaluatePerformance(model, testEpochIter, batchSize, eval);
+                endTimeEval = System.currentTimeMillis();
             }
+            log.info(eval.stats());
 
-//            log.info(eval.stats());
-//            System.out.println("Total training runtime: " + ((endTimeTrain-startTimeTrain)/60000) + " minutes");
-//            System.out.println("Total evaluation runtime: " + ((endTimeEval - startTimeEval) / 60000) + " minutes");
+            System.out.println("Total training runtime: " + ((endTimeTrain-startTimeTrain)/60000) + " minutes");
+            System.out.println("Total evaluation runtime: " + ((endTimeEval - startTimeEval) / 60000) + " minutes");
             log.info("****************************************************");
 
-            if (saveParams) saveModelAndParameters(model, outputPath);
+//            if (saveParams) saveModelAndParameters(model, outputPath);
 
-            // Testing load parameters
-            loadParameters(model.getLayer(3), new File(outputPath + File.separator + model.getLayer(3).conf().getLayer().getLayerName() + ".json"));
+            // Test saving and loading parameters
+//            for (Layer layer: model.getLayers()){
+//                if (!layer.paramTable().isEmpty()) {
+//                    for(Map.Entry entry: layer.paramTable().entrySet()){
+//                        IComplexNDArray params = (IComplexNDArray) entry.getValue();
+//                        if (saveParams) saveParameters(Nd4j.complexFlatten(params), entry.getKey() + layer.conf().getLayer().getLayerName(), outputPath);
+//                        break;
+//                    }
+//                }
+//            }
+//            loadParameters(model.getLayer(0), new File(outputPath + File.separator + model.getLayer(0).conf().getLayer().getLayerName() + ".bin"));
 //            MultiLayerNetwork reloadedNet = loadModel(new File(outputPath + File.separator + modelType.toString() + "-conf.json"), new File(outputPath + File.separator + modelType.toString() + ".bin"));
 //            assertEquals("Generated model and loaded model parameters are not equal", model.params(), reloadedNet.params());
 
@@ -277,36 +262,23 @@ public class CNNImageNetExample {
 
     private void saveModelAndParameters(MultiLayerNetwork net, File dataDir) throws IOException {
         System.out.println("Saving model and parameters to " + dataDir.toString() + "...");
-
-        BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(dataDir + File.separator + modelType.toString() + ".bin"));
+        // save parameters
+        DataOutputStream bos = new DataOutputStream(new FileOutputStream(dataDir + File.separator + modelType.toString() + ".bin"));
         Nd4j.write(bos, net.params());
         bos.flush();
         bos.close();
-
         // save model configuration
         FileUtils.write(new File(dataDir + File.separator + modelType.toString() + "-conf.json"), net.conf().toJson());
-
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
-        // save parameter table for each layer
-        for (Layer layer: net.getLayers()) {
-            if (layer.params() != null) {
-                Map<String, INDArray> map = layer.paramTable();
-                JSONObject o = new JSONObject(layer.paramTable());
-                String v = new JSONObject(layer.paramTable()).toString();
-                String t = mapper.writeValueAsString(layer.paramTable());
-                FileUtils.write(new File(dataDir + File.separator + layer.conf().getLayer().getLayerName() + ".json"), t);
-            }
-        }
     }
 
-    private MultiLayerNetwork loadModel(File confPath, File paramsBinPath) throws IOException {
-        System.out.println("Loading saved model...");
+    private MultiLayerNetwork loadModelAndParameters(File confPath, File paramsBinPath) throws IOException {
+        System.out.println("Loading saved model and parameters...");
+        // load parameters
         MultiLayerConfiguration confFromJson = MultiLayerConfiguration.fromJson(FileUtils.readFileToString(confPath));
         DataInputStream dis = new DataInputStream(new FileInputStream(paramsBinPath.toString()));
         INDArray newParams = Nd4j.read(dis);
         dis.close();
-
+        // load model configuration
         MultiLayerNetwork savedNetwork = new MultiLayerNetwork(confFromJson);
         savedNetwork.init();
         savedNetwork.setParams(newParams);
@@ -315,20 +287,23 @@ public class CNNImageNetExample {
 
     }
 
-    private void loadParameters(Layer layer, File paramPath) throws IOException{
-        Map<String, INDArray> result = new HashMap<>();
-        System.out.println("Loading parameters...");
-//        String params = FileUtils.readFileToString(paramPath);
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.setSerializationInclusion(JsonInclude.Include.NON_EMPTY);
+    private void saveParameters(INDArray param, String name, File dataDir) throws IOException {
+        // save parameter table for each layer
+        String path = dataDir + File.separator + name + ".bin";
 
-        TypeReference<HashMap<String, INDArray>> typeReference = new TypeReference<HashMap<String, INDArray>>(){};
-        Map<String, INDArray> paramWeight = mapper.readValue(paramPath, typeReference);
-//        for (Map.Entry entry: paramWeight.entrySet()) {
-//            double[] param  = (double[]) entry.getValue();
-//            result.put((String) entry.getKey(), Nd4j.create(param, new int[]{1, param.length}));
-//        }
-        layer.setParamTable(paramWeight);
+        // TODO nd4j issue read - fails on type when it looks for real but it has values so says its complex
+        DataOutputStream bos = new DataOutputStream(new FileOutputStream(path));
+        Nd4j.write(bos,param);
+        bos.flush();
+        bos.close();
+    }
+
+    private void loadParameters(Layer layer, File paramPath) throws IOException{
+        System.out.println("Loading saved parameters for layer" + layer.conf().getLayer().getLayerName() + "...");
+        DataInputStream dis = new DataInputStream(new FileInputStream(paramPath.toString()));
+        INDArray paramWeight = Nd4j.read(dis);
+        dis.close();
+        layer.setParams(paramWeight);
     }
 
     private void gradientCheck(DataSetIterator dataIter, MultiLayerNetwork model){
