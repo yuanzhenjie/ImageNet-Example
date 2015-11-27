@@ -1,6 +1,8 @@
 package imagenet.sampleModels;
 
 
+import imagenet.Utils.ModelUtils;
+import org.deeplearning4j.nn.api.Layer;
 import org.deeplearning4j.nn.api.OptimizationAlgorithm;
 import org.deeplearning4j.nn.conf.GradientNormalization;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
@@ -15,6 +17,11 @@ import org.deeplearning4j.nn.conf.layers.setup.ConvolutionLayerSetup;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.nn.weights.WeightInit;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Reference: http://arxiv.org/pdf/1409.1556.pdf
@@ -46,7 +53,7 @@ public class VGGNetA {
         this.iterations = iterations;
     }
 
-    public MultiLayerNetwork init() {
+    public MultiLayerConfiguration conf() {
         MultiLayerConfiguration.Builder conf = new NeuralNetConfiguration.Builder()
                 .seed(seed)
                 .activation("relu")
@@ -128,11 +135,17 @@ public class VGGNetA {
                 .backprop(true)
                 .pretrain(false);
 
-
         new ConvolutionLayerSetup(conf,height,width,channels);
-        MultiLayerNetwork model = new MultiLayerNetwork(conf.build());
+
+        return conf.build();
+    }
+
+    public MultiLayerNetwork init(){
+        MultiLayerNetwork model = new MultiLayerNetwork(this.conf());
         model.init();
 
         return model;
     }
+
+
 }

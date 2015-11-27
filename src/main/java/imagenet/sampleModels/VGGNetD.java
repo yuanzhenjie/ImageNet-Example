@@ -1,5 +1,8 @@
 package imagenet.sampleModels;
 
+import imagenet.Utils.ModelUtils;
+import org.deeplearning4j.nn.api.Layer;
+import org.deeplearning4j.nn.api.Model;
 import org.deeplearning4j.nn.api.OptimizationAlgorithm;
 import org.deeplearning4j.nn.conf.GradientNormalization;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
@@ -14,7 +17,13 @@ import org.deeplearning4j.nn.conf.layers.SubsamplingLayer;
 import org.deeplearning4j.nn.conf.layers.setup.ConvolutionLayerSetup;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.nn.weights.WeightInit;
+import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Reference: http://arxiv.org/pdf/1409.1556.pdf
@@ -28,29 +37,30 @@ import org.nd4j.linalg.lossfunctions.LossFunctions;
  */
 
 public class VGGNetD {
-    private int height;
-    private int width;
-    private int channels = 3;
-    private int outputNum = 1000;
-    private long seed = 123;
-    private int iterations = 370; // 74 epochs - this based on batch of 256
+        private int height;
+        private int width;
+        private int channels = 3;
+        private int outputNum = 1000;
+        private long seed = 123;
+        private int iterations = 370; // 74 epochs - this based on batch of 256
 
-    public VGGNetD(int height, int width, int channels, int outputNum, long seed, int iterations) {
+        public VGGNetD(int height, int width, int channels, int outputNum, long seed, int iterations) {
         this.height = height; // Paper sets size to 224 but this can and should vary - limit to min 100 based on depth & convolutions
         this.width = width; // Paper sets size to 224 but this can and should vary - limit to min 100 based on depth & convolutions
         this.channels = channels; // TODO prepare input to subtract mean RGB value from each pixel
         this.outputNum = outputNum;
         this.seed = seed;
         this.iterations = iterations;
-    }
-    public MultiLayerNetwork init() {
+        }
+
+        public MultiLayerConfiguration conf() {
         MultiLayerConfiguration.Builder conf = new NeuralNetConfiguration.Builder()
                 .seed(seed)
                 .activation("relu")
                 .updater(Updater.NESTEROVS)
                         // TODO pretrain with smaller net for first couple CNN layer weights, use Distribution for rest OR http://jmlr.org/proceedings/papers/v9/glorot10a/glorot10a.pdf with Relu
                 .weightInit(WeightInit.RELU)
-//                .dist(new GaussianDistribution(0.0, 0.01)) // uncomment if using WeightInit.DISTRIBUTION
+        //                .dist(new GaussianDistribution(0.0, 0.01)) // uncomment if using WeightInit.DISTRIBUTION
                 .iterations(iterations)
                 .gradientNormalization(GradientNormalization.RenormalizeL2PerLayer) // normalize to prevent vanishing or exploding gradients
                 .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
@@ -146,13 +156,16 @@ public class VGGNetD {
                 .backprop(true)
                 .pretrain(false);
 
+            new ConvolutionLayerSetup(conf,height,width,channels);
+            return conf.build();
+        }
 
-        new ConvolutionLayerSetup(conf,height,width,channels);
-        MultiLayerNetwork model = new MultiLayerNetwork(conf.build());
-        model.init();
+        public MultiLayerNetwork init(){
+                MultiLayerNetwork model = new MultiLayerNetwork(this.conf());
+                model.init();
+                return model;
+        }
 
-        return model;
-    }
 
 }
 

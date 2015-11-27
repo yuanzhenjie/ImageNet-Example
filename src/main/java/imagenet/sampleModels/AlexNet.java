@@ -48,7 +48,7 @@ public class AlexNet {
         // TODO batch size set to 128 for ImageNet based on paper - base it on memory bandwidth
     }
 
-    public MultiLayerNetwork init() {
+    public MultiLayerConfiguration conf() {
         double nonZeroBias = 1;
         double dropOut = 0.5;
         SubsamplingLayer.PoolingType poolingType = SubsamplingLayer.PoolingType.MAX;
@@ -140,10 +140,14 @@ public class AlexNet {
 
 
         new ConvolutionLayerSetup(conf,height,width,channels);
-        MultiLayerNetwork model = new MultiLayerNetwork(conf.build());
-        model.init();
+        return conf.build();
+    }
 
+    public MultiLayerNetwork init(){
+        MultiLayerNetwork model = new MultiLayerNetwork(conf());
+        model.init();
         return model;
+
     }
 
 }
