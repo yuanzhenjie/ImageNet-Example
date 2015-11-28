@@ -117,10 +117,10 @@ public class CNNImageNetExample {
         int outputNum = 1860;
         int seed = 123;
         int listenerFreq = 1;
-        // TODO match up different ids
-        int[] layerIdsA = {0,1,3,4,18,19,20}; // specific to VGGA
-        int[] layerIdsD = {0,1,3,4,18,19,20}; // specific to VGGD
-        Map<Integer, String> paramPaths;
+//        int[] layerIdsA = {0,1,3,4,13,14,15}; // specific to VGGA
+//        int[] layerIdsD = {0,1,3,4,18,19,20}; // specific to VGGD
+        String[] layerIdsVGG = {"cnn1", "cnn2", "cnn3", "cnn4", "ffn1", "ffn2", "output"};
+        Map<String, String> paramPaths = null;
 
         int totalCSLExamples2013 = 1281167;
         int totalCSLValExamples2013 = 50000;
@@ -159,8 +159,8 @@ public class CNNImageNetExample {
                 case "VGGNetD":
                     model = new VGGNetD(numRows, numColumns, nChannels, outputNum, seed, iterations).init();
                     if (loadParams) {
-                        paramPaths = ModelUtils.getParamPaths(model, defineOutputDir().toString(), layerIdsD);
-                        ModelUtils.loadParameters(model, layerIdsD, paramPaths);
+                        paramPaths = ModelUtils.getStringParamPaths(model, defineOutputDir().toString(), layerIdsVGG);
+                        ModelUtils.loadParameters(model, layerIdsVGG, paramPaths);
                     }
                     break;
             }
@@ -230,7 +230,7 @@ public class CNNImageNetExample {
             log.info("****************************************************");
 
             if (saveModel) ModelUtils.saveModelAndParameters(model, outputPath.toString());
-            if (saveParams) ModelUtils.saveParameters(model, layerIdsA, ModelUtils.getParamPaths(model, defineOutputDir().toString(), layerIdsA));
+            if (saveParams) ModelUtils.saveParameters(model, layerIdsVGG, paramPaths);
 
             log.info("****************Example finished********************");
         }

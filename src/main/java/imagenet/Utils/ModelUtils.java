@@ -90,6 +90,15 @@ public class ModelUtils {
         }
     }
 
+    public static void saveParameters(MultiLayerNetwork model, String[] layerIds, Map<String, String> paramPaths) throws IOException {
+        Layer layer;
+        for(String layerId: layerIds) {
+            layer = model.getLayer(layerId);
+            if (!layer.paramTable().isEmpty()) {
+                ModelUtils.saveLayerParameters(layer.params(), paramPaths.get(layerId));
+            }
+        }
+    }
     public static MultiLayerNetwork loadParameters(MultiLayerNetwork model, int[] layerIds, Map<Integer, String> paramPaths) throws IOException {
         Layer layer;
         for(int layerId: layerIds) {
@@ -99,11 +108,29 @@ public class ModelUtils {
         return model;
     }
 
-    public static Map<Integer, String> getParamPaths(MultiLayerNetwork model, String basePath, int[] layerIds){
-        Map<Integer, String> paramPaths = new HashMap<>();
+    public static MultiLayerNetwork loadParameters(MultiLayerNetwork model, String[] layerIds, Map<String, String> paramPaths) throws IOException {
+        Layer layer;
+        for(String layerId: layerIds) {
+            layer = model.getLayer(layerId);
+            loadLayerParameters(layer, paramPaths.get(layerId));
+        }
+        return model;
+    }
 
+    public static  Map<Integer, String>  getIdParamPaths(MultiLayerNetwork model, String basePath, int[] layerIds){
+        Map<Integer, String> paramPaths = new HashMap<>();
         for (int id : layerIds) {
-            paramPaths.put(id, FilenameUtils.concat(basePath, model.getLayer(id).conf().getLayer().getLayerName() + ".bin"));
+            paramPaths.put(id, FilenameUtils.concat(basePath, id + ".bin"));
+        }
+
+        return paramPaths;
+    }
+
+    public static Map<String, String> getStringParamPaths(MultiLayerNetwork model, String basePath, String[] layerIds){
+        Map<String, String> paramPaths = new HashMap<>();
+
+        for (String name : layerIds) {
+            paramPaths.put(name, FilenameUtils.concat(basePath, name + ".bin"));
         }
 
         return paramPaths;
