@@ -8,6 +8,8 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.api.java.function.Function;
 import org.apache.spark.mllib.feature.StandardScalerModel;
 import org.apache.spark.mllib.linalg.Vector;
+import org.canova.api.records.reader.RecordReader;
+import org.canova.api.split.LimitFileSplit;
 import org.canova.image.recordreader.ImageNetRecordReader;
 import org.canova.image.recordreader.ImageRecordReader;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
@@ -27,6 +29,8 @@ import java.io.BufferedOutputStream;
 import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.Random;
+import java.util.regex.Pattern;
 
 
 /**
@@ -105,36 +109,24 @@ public class CNNImageNetSparkExample {
 
         //load the images from the bucket setting the size to 28 x 28
         final String s3Bucket = "file:///home/ec2-user..."; // from S3
-        JavaRDD<LabeledPoint> data = MLLibUtil.fromBinary(sc.binaryFiles(s3Bucket + "/*")
-                , new ImageNetRecordReader(numColumns, numRows, nChannels, true, labelPath));
-
-        //OR
-//        JavaRDD<String> input = sc.textFile(args[0]); // from command line
-//        StandardScaler scaler = new StandardScaler();
-//        final StandardScalerModel scalarModel = scaler.fit(data.map(new Function<LabeledPoint, Vector>() {
-//            @Override
-//            public Vector call(LabeledPoint v1) throws Exception {
-//                return v1.features();
-//            }
-//        }).rdd());
-//        //get the trained data for the train/test split
-//        JavaRDD<LabeledPoint> normalizedData = data.map(new Function<LabeledPoint, LabeledPoint>() {
-//            @Override
-//            public LabeledPoint call(LabeledPoint v1) throws Exception {
-//                Vector features = v1.features();
-//                Vector normalized = scalarModel.transform(features);
-//                return new LabeledPoint(v1.label(), normalized);
-//            }
-//        }).cache()
-//        JavaRDD<LabeledPoint>[] trainTestSplit = normalizedData.randomSplit(new double[]{80, 20});
+        int totalTrainNumExamples = batchSize * numBatches;
+        String[] allForms = {"jpg", "jpeg", "JPG", "JPEG"};
+        RecordReader recordReader = new ImageNetRecordReader(numColumns, numRows, nChannels, true, labelPath);
+        recordReader.initialize(new LimitFileSplit(new File(trainData), allForms, totalTrainNumExamples, numCategories, Pattern.quote("_"), 0, new Random(123)));
+//        JavaRDD<LabeledPoint> data = MLLibUtil.fromDataSet(sc.binaryFiles(s3Bucket + "/*")
+//                , recordReader);
 
         System.out.println("Build model...");
         MultiLayerConfiguration netConf = new AlexNet(numRows, numColumns, nChannels, outputNum, seed, iterations).conf();
-        SparkDl4jMultiLayer model = new SparkDl4jMultiLayer(sc.sc(),netConf);
+//        SparkDl4jMultiLayer model = new SparkDl4jMultiLayer(sc.sc(),netConf);
+//        JavaRDD<LabeledPoint> mllLibData = MLLibUtil.fromBinary(data);
+
+//        MultiLayerNetwork network = SparkDl4jMultiLayer.train(mllLibData,netConf);
+
 
         System.out.println("Train model...");
 //        MultiLayerNetwork trainedNetwork = model.fit(trainTestSplit[0],100);
-        model.fit(sc,data);
+//        model.fit(sc,data);
 
         System.out.println("Eval model...");
         //TODO
@@ -145,7 +137,7 @@ public class CNNImageNetSparkExample {
 //        bos.flush();
 //        bos.close();
 // TODO Setup spark instance to output params publicly - lombok
-//        Nd4j.write(model.params(), new DataOutputStream(new FileOutputStream(paramPath)));
+//        Nd4j.write(network.params(), new DataOutputStream(new FileOutputStream(paramPath)));
 //        FileUtils.write(new File(confPath), model.conf().toYaml()); // Yaml or Json?
 //        log.info("Saved configuration and parameters to: {}, {}", confPath, paramPath);
 

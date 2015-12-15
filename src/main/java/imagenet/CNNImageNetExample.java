@@ -63,7 +63,7 @@ public class CNNImageNetExample {
     @Option(name="--numTestBatches",usage="Number of test batches",aliases="-nTB")
     private int numTestBatches = 1;
     @Option(name="--numEpochs",usage="Number of epochs",aliases="-nE")
-    private int numEpochs = 1;
+    private int numEpochs = 2;
     @Option(name="--iterations",usage="Number of iterations",aliases="-i")
     private int iterations = 1;
     @Option(name="--numCategories",usage="Number of categories",aliases="-nC")
@@ -71,7 +71,7 @@ public class CNNImageNetExample {
     @Option(name="--trainFolder",usage="Train folder",aliases="-taF")
     private String trainFolder = "train";
     @Option(name="--testFolder",usage="Test folder",aliases="-teF")
-    private String testFolder = "val/val-sample";
+    private String testFolder = "test";
     @Option(name="--saveModel",usage="Save model",aliases="-sM")
     private boolean saveModel = false;
     @Option(name="--saveParams",usage="Save parameters",aliases="-sP")
@@ -127,11 +127,12 @@ public class CNNImageNetExample {
         int totalTrainNumExamples = batchSize * numBatches;
         int totalTestNumExamples = batchSize * numTestBatches;
 
-        String basePath = System.getProperty("user.home") + File.separator + "Documents" + File.separator + "skymind" + File.separator + "imagenet" + File.separator;
-        String trainData = basePath + trainFolder + File.separator;
-        String testData = basePath + testFolder + File.separator;
-        String labelPath = basePath + "cls-loc-labels.csv";
-        String valLabelMap = basePath + "cls-loc-val-map.csv";
+//        String basePath = FilenameUtils.concat(System.getProperty("user.home"), "Documents", "skymind", "imagenet");
+        String basePath = FilenameUtils.concat(System.getProperty("user.dir"), "src/main/resources/");
+        String trainData = FilenameUtils.concat(basePath, trainFolder);
+        String testData = FilenameUtils.concat(basePath, testFolder);
+        String labelPath = FilenameUtils.concat(basePath, "cls-loc-labels.csv");
+        String valLabelMap = FilenameUtils.concat(basePath, "cls-loc-val-map.csv");
         String[] allForms = {"jpg", "jpeg", "JPG", "JPEG"};
 
         log.info("Load data....");
