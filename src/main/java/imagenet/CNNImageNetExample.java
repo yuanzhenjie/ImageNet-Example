@@ -57,7 +57,9 @@ public class CNNImageNetExample {
     @Option(name="--modelType",usage="Type of model (AlexNet, VGGNetA, VGGNetB)",aliases = "-mT")
     private String modelType = "AlexNet";
     @Option(name="--batchSize",usage="Batch size",aliases="-b")
-    private int batchSize = 8;
+    private int batchSize = 30;
+    @Option(name="--testBatchSize",usage="Test Batch size",aliases="-tB")
+    private int testBatchSize = 15;
     @Option(name="--numBatches",usage="Number of batches",aliases="-nB")
     private int numBatches = 1;
     @Option(name="--numTestBatches",usage="Number of test batches",aliases="-nTB")
@@ -65,7 +67,7 @@ public class CNNImageNetExample {
     @Option(name="--numEpochs",usage="Number of epochs",aliases="-nE")
     private int numEpochs = 2;
     @Option(name="--iterations",usage="Number of iterations",aliases="-i")
-    private int iterations = 1;
+    private int iterations = 5;
     @Option(name="--numCategories",usage="Number of categories",aliases="-nC")
     private int numCategories = 4;
     @Option(name="--trainFolder",usage="Train folder",aliases="-taF")
@@ -217,11 +219,11 @@ public class CNNImageNetExample {
 //                testIter = new RecordReaderDataSetIterator(testRecordReader, batchSize, numRows * numColumns * nChannels, 1860);
 
                 recordReader.initialize(new LimitFileSplit(new File(testData), allForms, totalTestNumExamples, numCategories, Pattern.quote("_"), 0, new Random(123)));
-                testIter = new RecordReaderDataSetIterator(recordReader, batchSize, numRows * numColumns * nChannels, 1860);
+                testIter = new RecordReaderDataSetIterator(recordReader, testBatchSize, numRows * numColumns * nChannels, 1860);
                 MultipleEpochsIterator testEpochIter = new MultipleEpochsIterator(numEpochs, testIter);
 
                 startTimeEval = System.currentTimeMillis();
-                eval = evaluatePerformance(model, testEpochIter, batchSize, eval);
+                eval = evaluatePerformance(model, testEpochIter, testBatchSize, eval);
                 endTimeEval = System.currentTimeMillis();
             }
             log.info(eval.stats());
