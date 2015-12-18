@@ -12,6 +12,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.canova.api.records.reader.RecordReader;
 import org.canova.api.split.LimitFileSplit;
 import org.canova.image.recordreader.ImageNetRecordReader;
+import org.canova.image.recordreader.ImageRecordReader;
 import org.deeplearning4j.datasets.canova.RecordReaderDataSetIterator;
 import org.deeplearning4j.datasets.iterator.DataSetIterator;
 import org.deeplearning4j.datasets.iterator.MultipleEpochsIterator;
@@ -57,19 +58,19 @@ public class CNNImageNetExample {
     @Option(name="--modelType",usage="Type of model (AlexNet, VGGNetA, VGGNetB)",aliases = "-mT")
     private String modelType = "AlexNet";
     @Option(name="--batchSize",usage="Batch size",aliases="-b")
-    private int batchSize = 30;
+    private int batchSize = 2;
     @Option(name="--testBatchSize",usage="Test Batch size",aliases="-tB")
-    private int testBatchSize = 15;
+    private int testBatchSize = 2;
     @Option(name="--numBatches",usage="Number of batches",aliases="-nB")
     private int numBatches = 1;
     @Option(name="--numTestBatches",usage="Number of test batches",aliases="-nTB")
     private int numTestBatches = 1;
     @Option(name="--numEpochs",usage="Number of epochs",aliases="-nE")
-    private int numEpochs = 2;
+    private int numEpochs = 1;
     @Option(name="--iterations",usage="Number of iterations",aliases="-i")
-    private int iterations = 5;
+    private int iterations = 2;
     @Option(name="--numCategories",usage="Number of categories",aliases="-nC")
-    private int numCategories = 4;
+    private int numCategories = 2;
     @Option(name="--trainFolder",usage="Train folder",aliases="-taF")
     private String trainFolder = "train";
     @Option(name="--testFolder",usage="Test folder",aliases="-teF")
@@ -129,7 +130,7 @@ public class CNNImageNetExample {
         int totalTrainNumExamples = batchSize * numBatches;
         int totalTestNumExamples = batchSize * numTestBatches;
 
-//        String basePath = FilenameUtils.concat(System.getProperty("user.home"), "Documents", "skymind", "imagenet");
+//        String basePath = FilenameUtils.concat(System.getProperty("user.home"), "Documents/skymind/imagenet");
         String basePath = FilenameUtils.concat(System.getProperty("user.dir"), "src/main/resources/");
         String trainData = FilenameUtils.concat(basePath, trainFolder);
         String testData = FilenameUtils.concat(basePath, testFolder);
@@ -138,10 +139,9 @@ public class CNNImageNetExample {
         String[] allForms = {"jpg", "jpeg", "JPG", "JPEG"};
 
         log.info("Load data....");
-        RecordReader recordReader = new ImageNetRecordReader(numColumns, numRows, nChannels, true, labelPath);
+        RecordReader recordReader = new ImageNetRecordReader(numColumns, numRows, nChannels, labelPath, true, Pattern.quote("_"));
         recordReader.initialize(new LimitFileSplit(new File(trainData), allForms, totalTrainNumExamples, numCategories, Pattern.quote("_"), 0, new Random(123)));
         dataIter = new RecordReaderDataSetIterator(recordReader, batchSize, numRows * numColumns * nChannels, 1860);
-
 
         log.info("Build model....");
         if (confName != null && paramName != null) {
@@ -198,7 +198,7 @@ public class CNNImageNetExample {
             // split training and evaluatioin out of same DataSetIterator
             if (splitTrainData) {
                 int splitTrainNum = (int) (batchSize * .8);
-                int numTestExamples = totalTrainNumExamples / (numBatches) - splitTrainNum;
+                int numTestExamples = totalTrainNumExamples / numBatches - splitTrainNum;
 
                 for (int i = 0; i < numEpochs; i++) {
                     for (int j = 0; j < numBatches; j++)
