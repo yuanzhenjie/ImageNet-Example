@@ -1,25 +1,17 @@
 package imagenet;
 
 
-import com.sun.javafx.sg.prism.NGShape;
-import freemarker.ext.beans.HashAdapter;
+import imagenet.Utils.ImageNetDataSetIterator;
+import imagenet.Utils.ImageNetLoader;
 import imagenet.Utils.ModelUtils;
 import imagenet.sampleModels.LeNet;
 import imagenet.sampleModels.VGGNetA;
 import imagenet.sampleModels.VGGNetD;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.canova.api.records.reader.RecordReader;
-import org.canova.api.split.LimitFileSplit;
-import org.canova.image.recordreader.ImageNetRecordReader;
-import org.canova.image.recordreader.ImageRecordReader;
-import org.deeplearning4j.datasets.canova.RecordReaderDataSetIterator;
 import org.deeplearning4j.datasets.iterator.DataSetIterator;
 import org.deeplearning4j.datasets.iterator.MultipleEpochsIterator;
 import org.deeplearning4j.eval.Evaluation;
 import org.deeplearning4j.gradientcheck.GradientCheckUtil;
-import org.deeplearning4j.nn.api.Layer;
-import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.optimize.api.IterationListener;
 import org.deeplearning4j.optimize.listeners.ParamAndGradientIterationListener;
@@ -30,7 +22,6 @@ import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.dataset.DataSet;
-import org.nd4j.linalg.factory.Nd4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,7 +29,6 @@ import java.io.*;
 import java.util.*;
 import java.util.regex.Pattern;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 /**
@@ -125,23 +115,17 @@ public class CNNImageNetExample {
         String[] layerIdsVGG = {"cnn1", "cnn2", "cnn3", "cnn4", "ffn1", "ffn2", "output"};
         Map<String, String> paramPaths = null;
 
-        int totalCSLExamples2013 = 1281167;
-        int totalCSLValExamples2013 = 50000;
         int totalTrainNumExamples = batchSize * numBatches;
         int totalTestNumExamples = batchSize * numTestBatches;
-
-//        String basePath = FilenameUtils.concat(System.getProperty("user.home"), "Documents/skymind/imagenet");
-        String basePath = FilenameUtils.concat(System.getProperty("user.dir"), "src/main/resources/");
+        //        String basePath = FilenameUtils.concat(System.getProperty("user.home"), "Documents/skymind/imagenet");
+        String basePath = ImageNetLoader.BASE_DIR;
         String trainData = FilenameUtils.concat(basePath, trainFolder);
         String testData = FilenameUtils.concat(basePath, testFolder);
-        String labelPath = FilenameUtils.concat(basePath, "cls-loc-labels.csv");
-        String valLabelMap = FilenameUtils.concat(basePath, "cls-loc-val-map.csv");
-        String[] allForms = {"jpg", "jpeg", "JPG", "JPEG"};
+        String labelPath = FilenameUtils.concat(basePath, ImageNetLoader.LABEL_FILENAME);
+        String valLabelMap = FilenameUtils.concat(basePath, ImageNetLoader.VAL_MAP_FILENAME);
 
         log.info("Load data....");
-        RecordReader recordReader = new ImageNetRecordReader(numColumns, numRows, nChannels, labelPath, true, Pattern.quote("_"));
-        recordReader.initialize(new LimitFileSplit(new File(trainData), allForms, totalTrainNumExamples, numCategories, Pattern.quote("_"), 0, new Random(123)));
-        dataIter = new RecordReaderDataSetIterator(recordReader, batchSize, numRows * numColumns * nChannels, 1860);
+        dataIter = new ImageNetDataSetIterator(batchSize, totalTrainNumExamples, new int[] {numRows, numColumns, nChannels}, outputNum);
 
         log.info("Build model....");
         if (confName != null && paramName != null) {
@@ -169,6 +153,7 @@ public class CNNImageNetExample {
             }
         }
 
+        dataIter.totalExamples();
         // Listeners
         IterationListener paramListener = ParamAndGradientIterationListener.builder()
                 .outputToFile(true)
@@ -192,8 +177,8 @@ public class CNNImageNetExample {
             //TODO need dataIter that loops through set number of examples like SamplingIter but takes iter vs dataset
             MultipleEpochsIterator epochIter = new MultipleEpochsIterator(numEpochs, dataIter);
 ////                asyncIter = new AsyncDataSetIterator(dataIter, 1); TODO doesn't have next(num)
-            Evaluation eval = new Evaluation(recordReader.getLabels());
-
+//            Evaluation eval = new Evaluation(recordReader.getLabels()); // TODO get labels back from
+            Evaluation eval = new Evaluation();
 
             // split training and evaluatioin out of same DataSetIterator
             if (splitTrainData) {
@@ -213,13 +198,12 @@ public class CNNImageNetExample {
                 }
                 endTimeTrain = System.currentTimeMillis();
 
-                // TODO uncomment code when using full validation set
+                // TODO incorporate code when using full validation set to pass valLabelMap through iterator
 //                RecordReader testRecordReader = new ImageNetRecordReader(numColumns, numRows, nChannels, true, labelPath, valLabelMap); // use when pulling from main val for all labels
 //                testRecordReader.initialize(new LimitFileSplit(new File(testData), allForms, totalNumExamples, numCategories, Pattern.quote("_"), 0, new Random(123)));
 //                testIter = new RecordReaderDataSetIterator(testRecordReader, batchSize, numRows * numColumns * nChannels, 1860);
 
-                recordReader.initialize(new LimitFileSplit(new File(testData), allForms, totalTestNumExamples, numCategories, Pattern.quote("_"), 0, new Random(123)));
-                testIter = new RecordReaderDataSetIterator(recordReader, testBatchSize, numRows * numColumns * nChannels, 1860);
+                testIter = new ImageNetDataSetIterator(testBatchSize, totalTestNumExamples, new int[] {numRows, numColumns, nChannels}, outputNum, "CLS_VAL");
                 MultipleEpochsIterator testEpochIter = new MultipleEpochsIterator(numEpochs, testIter);
 
                 startTimeEval = System.currentTimeMillis();
