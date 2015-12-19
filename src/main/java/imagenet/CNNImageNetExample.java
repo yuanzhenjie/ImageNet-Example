@@ -152,8 +152,7 @@ public class CNNImageNetExample {
                     break;
             }
         }
-
-        dataIter.totalExamples();
+        ;
         // Listeners
         IterationListener paramListener = ParamAndGradientIterationListener.builder()
                 .outputToFile(true)
@@ -177,8 +176,7 @@ public class CNNImageNetExample {
             //TODO need dataIter that loops through set number of examples like SamplingIter but takes iter vs dataset
             MultipleEpochsIterator epochIter = new MultipleEpochsIterator(numEpochs, dataIter);
 ////                asyncIter = new AsyncDataSetIterator(dataIter, 1); TODO doesn't have next(num)
-//            Evaluation eval = new Evaluation(recordReader.getLabels()); // TODO get labels back from
-            Evaluation eval = new Evaluation();
+            Evaluation eval = new Evaluation(dataIter.getLabels());
 
             // split training and evaluatioin out of same DataSetIterator
             if (splitTrainData) {
