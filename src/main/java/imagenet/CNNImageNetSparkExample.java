@@ -1,20 +1,27 @@
 package imagenet;
 
+import imagenet.Utils.ImageNetDataSetIterator;
 import imagenet.sampleModels.AlexNet;
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.canova.api.records.reader.RecordReader;
 import org.canova.api.split.LimitFileSplit;
 import org.canova.image.recordreader.ImageNetRecordReader;
+import org.deeplearning4j.datasets.iterator.DataSetIterator;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
+import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer;
+import org.nd4j.linalg.dataset.DataSet;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Random;
 import java.util.regex.Pattern;
 
@@ -28,7 +35,7 @@ public class CNNImageNetSparkExample {
     @Option(name="--modelType",usage="Type of model (AlexNet, VGGNetA, VGGNetB)",aliases = "-mT")
     private String modelType = "AlexNet";
     @Option(name="--batchSize",usage="Batch size",aliases="-b")
-    private int batchSize = 1;
+    private int batchSize = 10;
     @Option(name="--numBatches",usage="Number of batches",aliases="-nB")
     private int numBatches = 1;
     @Option(name="--numTestBatches",usage="Number of test batches",aliases="-nTB")
@@ -38,7 +45,7 @@ public class CNNImageNetSparkExample {
     @Option(name="--iterations",usage="Number of iterations",aliases="-i")
     private int iterations = 1;
     @Option(name="--numCategories",usage="Number of categories",aliases="-nC")
-    private int numCategories = 1;
+    private int numCategories = 4;
     @Option(name="--trainFolder",usage="Train folder",aliases="-taF")
     private String trainFolder = "train";
     @Option(name="--testFolder",usage="Test folder",aliases="-teF")
@@ -48,12 +55,12 @@ public class CNNImageNetSparkExample {
 
 
     public void doMain(String[] args) throws Exception{
-        String basePath = System.getProperty("user.home") + File.separator + "Documents" + File.separator + "skymind" + File.separator + "imagenet" + File.separator;
-        String trainData = basePath + trainFolder + File.separator;
-        String testData = basePath + testFolder + File.separator;
-        String labelPath = basePath + "cls-loc-labels.txt";
         String confPath = this.toString() + "conf.yaml";
         String paramPath = this.toString() + "param.bin";
+        int nTrain = (int) (batchSize * .8);
+        int nTest = (int) (batchSize * .2);
+        List<DataSet> train = new ArrayList<>(nTrain);
+        List<DataSet> test = new ArrayList<>(nTest);
 
         final int numRows = 224;
         final int numColumns = 224;
@@ -73,19 +80,20 @@ public class CNNImageNetSparkExample {
         }
 
         System.out.println("Load data...");
-        // TODO finish applying how to load data - especially limitSplit
 
         //load the images from the bucket setting the size to 28 x 28
         int totalTrainNumExamples = batchSize * numBatches;
 
-        String[] allForms = {"jpg", "jpeg", "JPG", "JPEG"};
-        RecordReader recordReader = new ImageNetRecordReader(numColumns, numRows, nChannels, labelPath, true);
-        recordReader.initialize(new LimitFileSplit(new File(trainData), allForms, totalTrainNumExamples, numCategories, Pattern.quote("_"), 0, new Random(123)));
-//        JavaRDD<LabeledPoint> data = MLLibUtil.fromDataSet();
+        DataSetIterator iter = new ImageNetDataSetIterator(batchSize, totalTrainNumExamples, new int[] {numRows, numColumns, nChannels}, numCategories);
+        int c = 0;
+        while(iter.hasNext()){
+            if(c++ <= nTrain) train.add(iter.next());
+            else test.add(iter.next());
+        }
 
         System.out.println("Build model..."
         );
-        MultiLayerConfiguration netConf = new AlexNet(numRows, numColumns, nChannels, outputNum, seed, iterations).conf();
+        MultiLayerNetwork net = new AlexNet(numRows, numColumns, nChannels, outputNum, seed, iterations).init();
 
         // Spark context
         SparkConf conf = new SparkConf().setMaster("local");
@@ -95,14 +103,13 @@ public class CNNImageNetSparkExample {
         conf.set(SparkDl4jMultiLayer.AVERAGE_EACH_ITERATION, String.valueOf(true));
         final JavaSparkContext sc = new JavaSparkContext(conf);
 
-        String s = recordReader.next().toString();
-        sc.textFile(s);
+        SparkDl4jMultiLayer sparkModel = new SparkDl4jMultiLayer(sc, net);
 
-        SparkDl4jMultiLayer sparkModel = new SparkDl4jMultiLayer(sc, netConf);
+        JavaRDD<DataSet> sparkDataTrain = sc.parallelize(train);
 
         System.out.println("Train model...");
         //Train network
-//        MultiLayerNetwork net = sparkModel.fit(sc, recordReader, batchSize/iterations);
+        net = sparkModel.fitDataSet(sparkDataTrain);
 
         System.out.println("Eval model...");
         //TODO
