@@ -111,7 +111,7 @@ public class CNNImageNetSparkExample {
         final String s3Bucket = "file:///home/ec2-user..."; // from S3
         int totalTrainNumExamples = batchSize * numBatches;
         String[] allForms = {"jpg", "jpeg", "JPG", "JPEG"};
-        RecordReader recordReader = new ImageNetRecordReader(numColumns, numRows, nChannels, true, labelPath);
+        RecordReader recordReader = new ImageNetRecordReader(numColumns, numRows, nChannels, null, true, labelPath, 0);
         recordReader.initialize(new LimitFileSplit(new File(trainData), allForms, totalTrainNumExamples, numCategories, Pattern.quote("_"), 0, new Random(123)));
 //        JavaRDD<LabeledPoint> data = MLLibUtil.fromDataSet(sc.binaryFiles(s3Bucket + "/*")
 //                , recordReader);
