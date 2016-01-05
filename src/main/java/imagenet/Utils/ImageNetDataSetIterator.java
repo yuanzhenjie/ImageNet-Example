@@ -61,7 +61,7 @@ public class ImageNetDataSetIterator extends RecordReaderDataSetIterator {
      * @param numExamples the overall number of examples
      * */
     public ImageNetDataSetIterator(int batchSize, int numExamples, int[] imgDim, int numCategories) {
-        super(new ImageNetLoader().getRecordReader(imgDim[0], imgDim[1], imgDim[2], numExamples), batchSize, imgDim[0] * imgDim[1] * imgDim[2], numCategories);
+        super(new ImageNetLoader().getRecordReader(imgDim[0], imgDim[1], imgDim[2], numExamples, numCategories), batchSize, imgDim[0] * imgDim[1] * imgDim[2], numCategories);
     }
 
     /**
@@ -71,7 +71,7 @@ public class ImageNetDataSetIterator extends RecordReaderDataSetIterator {
      * @param numExamples the overall number of examples
      * */
     public ImageNetDataSetIterator(int batchSize, int numExamples, int[] imgDim, int numCategories, String version) {
-        super(new ImageNetLoader(version).getRecordReader(imgDim[0], imgDim[1], imgDim[2], numExamples), batchSize, imgDim[0] * imgDim[1] * imgDim[2], numCategories);
+        super(new ImageNetLoader(version).getRecordReader(imgDim[0], imgDim[1], imgDim[2], numExamples, numCategories), batchSize, imgDim[0] * imgDim[1] * imgDim[2], numCategories);
     }
 
 

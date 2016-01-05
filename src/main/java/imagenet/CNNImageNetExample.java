@@ -48,7 +48,7 @@ public class CNNImageNetExample {
     @Option(name="--modelType",usage="Type of model (AlexNet, VGGNetA, VGGNetB)",aliases = "-mT")
     private String modelType = "AlexNet";
     @Option(name="--batchSize",usage="Batch size",aliases="-b")
-    private int batchSize = 2;
+    private int batchSize = 10;
     @Option(name="--testBatchSize",usage="Test Batch size",aliases="-tB")
     private int testBatchSize = 2;
     @Option(name="--numBatches",usage="Number of batches",aliases="-nB")
@@ -60,7 +60,7 @@ public class CNNImageNetExample {
     @Option(name="--iterations",usage="Number of iterations",aliases="-i")
     private int iterations = 2;
     @Option(name="--numCategories",usage="Number of categories",aliases="-nC")
-    private int numCategories = 2;
+    private int numCategories = 4;
     @Option(name="--trainFolder",usage="Train folder",aliases="-taF")
     private String trainFolder = "train";
     @Option(name="--testFolder",usage="Test folder",aliases="-teF")
@@ -125,7 +125,7 @@ public class CNNImageNetExample {
         String valLabelMap = FilenameUtils.concat(basePath, ImageNetLoader.VAL_MAP_FILENAME);
 
         log.info("Load data....");
-        dataIter = new ImageNetDataSetIterator(batchSize, totalTrainNumExamples, new int[] {numRows, numColumns, nChannels}, outputNum);
+        dataIter = new ImageNetDataSetIterator(batchSize, totalTrainNumExamples, new int[] {numRows, numColumns, nChannels}, numCategories);
 
         log.info("Build model....");
         if (confName != null && paramName != null) {

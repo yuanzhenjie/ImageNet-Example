@@ -167,6 +167,11 @@ public class ImageNetLoader extends BaseImageLoader{
         return getRecordReader(width, height, channels, true, regexPattern);
     }
 
+    public RecordReader getRecordReader(int width, int height, int channels, int numExamples, int numCategories) {
+        this.numExamples = numExamples;
+        this.numLabels = numCategories;
+        return getRecordReader(width, height, channels, true, regexPattern);
+    }
 
     public RecordReader getRecordReader(int width, int height, int channels, boolean appendLabel, String regexPattern) {
         RecordReader recordReader = new ImageNetRecordReader(width, height, channels, FilenameUtils.concat(BASE_DIR, LABEL_FILENAME), appendLabel, regexPattern);
