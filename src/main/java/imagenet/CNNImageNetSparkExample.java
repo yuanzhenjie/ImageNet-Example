@@ -1,28 +1,41 @@
 package imagenet;
 
-import imagenet.Utils.ImageNetDataSetIterator;
+import imagenet.Utils.ImageNetLoader;
 import imagenet.sampleModels.AlexNet;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.canova.api.records.reader.RecordReader;
-import org.canova.api.split.LimitFileSplit;
+import org.apache.spark.input.PortableDataStream;
+import org.canova.api.util.ClassPathResource;
+import org.canova.api.writable.Writable;
 import org.canova.image.recordreader.ImageNetRecordReader;
-import org.deeplearning4j.datasets.iterator.DataSetIterator;
+import org.deeplearning4j.eval.Evaluation;
+import org.deeplearning4j.nn.api.Layer;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.canova.spark.functions.RecordReaderFunction;
+import org.deeplearning4j.optimize.api.IterationListener;
+import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
+import org.deeplearning4j.spark.canova.CanovaDataSetFunction;
+import org.deeplearning4j.spark.canova.CanovaSequenceDataSetFunction;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
 import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer;
-import org.nd4j.linalg.dataset.DataSet;
+import org.nd4j.linalg.api.ndarray.INDArray;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import scala.Tuple2;
+import org.nd4j.linalg.dataset.DataSet;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
-import java.util.Random;
 import java.util.regex.Pattern;
 
 
@@ -53,14 +66,9 @@ public class CNNImageNetSparkExample {
     @Option(name="--saveParams",usage="Save parameters",aliases="-sP")
     private boolean saveParams = true;
 
-
     public void doMain(String[] args) throws Exception{
         String confPath = this.toString() + "conf.yaml";
         String paramPath = this.toString() + "param.bin";
-        int nTrain = (int) (batchSize * .8);
-        int nTest = (int) (batchSize * .2);
-        List<DataSet> train = new ArrayList<>(nTrain);
-        List<DataSet> test = new ArrayList<>(nTest);
 
         final int numRows = 224;
         final int numColumns = 224;
@@ -81,38 +89,54 @@ public class CNNImageNetSparkExample {
 
         System.out.println("Load data...");
 
-        //load the images from the bucket setting the size to 28 x 28
-        int totalTrainNumExamples = batchSize * numBatches;
+        ClassPathResource trainPath = new ClassPathResource("train");
+        String path = FilenameUtils.concat(trainPath.getFile().getAbsolutePath(), "*");
 
-        DataSetIterator iter = new ImageNetDataSetIterator(batchSize, totalTrainNumExamples, new int[] {numRows, numColumns, nChannels}, numCategories);
-        int c = 0;
-        while(iter.hasNext()){
-            if(c++ <= nTrain) train.add(iter.next());
-            else test.add(iter.next());
-        }
-
-        System.out.println("Build model..."
-        );
+        System.out.println("Build model...");
         MultiLayerNetwork net = new AlexNet(numRows, numColumns, nChannels, outputNum, seed, iterations).init();
+        net.setListeners(Arrays.asList((IterationListener) new ScoreIterationListener(1)));
 
         // Spark context
         SparkConf conf = new SparkConf().setMaster("local");
-        conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
-        conf.set("spark.executor.memory", "1024m");
+//        conf.set("spark.executor.memory", "1024m");
         conf.setAppName("imageNet");
         conf.set(SparkDl4jMultiLayer.AVERAGE_EACH_ITERATION, String.valueOf(true));
         final JavaSparkContext sc = new JavaSparkContext(conf);
 
         SparkDl4jMultiLayer sparkModel = new SparkDl4jMultiLayer(sc, net);
 
-        JavaRDD<DataSet> sparkDataTrain = sc.parallelize(train);
+        JavaPairRDD<String,PortableDataStream> sparkDataTrain = sc.binaryFiles(path);
+        List<Tuple2<String, PortableDataStream>> t = sparkDataTrain.collect();
+
 
         System.out.println("Train model...");
         //Train network
-        net = sparkModel.fitDataSet(sparkDataTrain);
+        String labelPath = FilenameUtils.concat(ImageNetLoader.BASE_DIR, ImageNetLoader.LABEL_FILENAME);
+        RecordReaderFunction rrf = new RecordReaderFunction(new ImageNetRecordReader(numRows, numColumns, nChannels, labelPath, true, Pattern.quote("_")));
+        JavaRDD<Collection<Writable>> rdd = sparkDataTrain.map(rrf);
+//        List<Collection<Writable>>  listSpark = rdd.take(2); // TODO check data
+
+        JavaRDD<DataSet> data = rdd.map(new CanovaDataSetFunction(numRows * numColumns * nChannels, numCategories, true));
+//        List<DataSet>  listSpark = data.collect(); // TODO check data
+
+//        net = sparkModel.fitDataSet(data); // TODO hangs and doesn't run correctly
 
         System.out.println("Eval model...");
-        //TODO
+//        MultiLayerNetwork netCopy = sparkModel.getNetwork().clone();
+// TODO check eval with below
+//        Evaluation evalExpected = new Evaluation();
+//        INDArray outLocal = netCopy.output( input??? , Layer.TrainingMode.TEST);
+//        evalExpected.eval(labels???, outLocal);
+
+        // TODO fix ImageNet iterator to load this data
+        ClassPathResource testPath = new ClassPathResource("test");
+        path = FilenameUtils.concat(testPath.getFile().getAbsolutePath(), "*");
+
+        List<DataSet> test = new ArrayList<>(78);
+
+        JavaRDD<DataSet> testDS = sc.parallelize(test);
+        Evaluation evalActual = sparkModel.evaluate(testDS,batchSize);
+        log.info(evalActual.stats());
 
         System.out.println("Save model...");
 //        BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(paramPath));
@@ -123,8 +147,6 @@ public class CNNImageNetSparkExample {
 //        Nd4j.write(network.params(), new DataOutputStream(new FileOutputStream(paramPath)));
 //        FileUtils.write(new File(confPath), model.conf().toYaml()); // Yaml or Json?
 //        log.info("Saved configuration and parameters to: {}, {}", confPath, paramPath);
-
-
 
     }
 

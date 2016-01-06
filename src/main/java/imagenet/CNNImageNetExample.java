@@ -27,7 +27,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.*;
-import java.util.regex.Pattern;
 
 import static org.junit.Assert.assertTrue;
 
@@ -125,7 +124,7 @@ public class CNNImageNetExample {
         String valLabelMap = FilenameUtils.concat(basePath, ImageNetLoader.VAL_MAP_FILENAME);
 
         log.info("Load data....");
-        dataIter = new ImageNetDataSetIterator(batchSize, totalTrainNumExamples, new int[] {numRows, numColumns, nChannels}, numCategories);
+        dataIter = new ImageNetDataSetIterator(batchSize, totalTrainNumExamples, new int[] {numRows, numColumns, nChannels}, numCategories, outputNum);
 
         log.info("Build model....");
         if (confName != null && paramName != null) {
