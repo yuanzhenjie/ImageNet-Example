@@ -77,7 +77,7 @@ public class CNNImageNetExample {
     }
 
     public void doMain(String[] args) throws Exception {
-        String outputPath = defineOutputDir();
+        String outputPath = ModelUtils.defineOutputDir(modelType.toString());
 
         // Parse command line arguments if they exist
         CmdLineParser parser = new CmdLineParser(this);
@@ -126,6 +126,7 @@ public class CNNImageNetExample {
         log.info("Load data....");
         dataIter = new ImageNetDataSetIterator(batchSize, totalTrainNumExamples, new int[] {numRows, numColumns, nChannels}, numCategories, outputNum);
 
+        DataSet ds = dataIter.next();
         log.info("Build model....");
         if (confName != null && paramName != null) {
             String confPath = FilenameUtils.concat(outputPath, confName + "conf.yaml");
@@ -145,7 +146,7 @@ public class CNNImageNetExample {
                 case "VGGNetD":
                     model = new VGGNetD(numRows, numColumns, nChannels, outputNum, seed, iterations).init();
                     if (loadParams) {
-                        paramPaths = ModelUtils.getStringParamPaths(model, defineOutputDir().toString(), layerIdsVGG);
+                        paramPaths = ModelUtils.getStringParamPaths(model, outputPath, layerIdsVGG);
                         ModelUtils.loadParameters(model, layerIdsVGG, paramPaths);
                     }
                     break;
@@ -233,16 +234,6 @@ public class CNNImageNetExample {
             eval.eval(imgNet.getLabels(), output);
         }
         return eval;
-    }
-
-    private String defineOutputDir(){
-        String tmpDir = System.getProperty("java.io.tmpdir");
-        String outputPath = File.separator + modelType.toString() + File.separator + "output";
-        File dataDir = new File(tmpDir,outputPath);
-        if (!dataDir.getParentFile().exists())
-            dataDir.mkdirs();
-        return dataDir.toString();
-
     }
 
     private void gradientCheck(DataSetIterator dataIter, MultiLayerNetwork model){

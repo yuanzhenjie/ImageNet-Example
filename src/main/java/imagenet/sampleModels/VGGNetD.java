@@ -154,9 +154,9 @@ public class VGGNetD {
                         .activation("softmax")
                         .build())
                 .backprop(true)
-                .pretrain(false);
+                .pretrain(false)
+                .cnnInputSize(height,width,channels);
 
-            new ConvolutionLayerSetup(conf,height,width,channels);
             return conf.build();
         }
 

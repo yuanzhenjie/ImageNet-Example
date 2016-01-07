@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -136,5 +135,14 @@ public class ModelUtils {
         return paramPaths;
     }
 
+    public static String defineOutputDir(String modelType){
+        String tmpDir = System.getProperty("java.io.tmpdir");
+        String outputPath = File.separator + modelType + File.separator + "output";
+        File dataDir = new File(tmpDir,outputPath);
+        if (!dataDir.getParentFile().exists())
+            dataDir.mkdirs();
+        return dataDir.toString();
+
+    }
 
 }

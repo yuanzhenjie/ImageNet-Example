@@ -82,10 +82,10 @@ public class LeNet {
                         .activation("softmax") // radial basis function required
                         .build())
                 .backprop(true)
-                .pretrain(false);
+                .pretrain(false)
+                .cnnInputSize(height,width,channels);
 
 
-        new ConvolutionLayerSetup(conf,height,width,channels);
         MultiLayerNetwork model = new MultiLayerNetwork(conf.build());
         model.init();
 

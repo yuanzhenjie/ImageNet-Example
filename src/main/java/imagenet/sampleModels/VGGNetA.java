@@ -133,9 +133,8 @@ public class VGGNetA {
                         .activation("softmax")
                         .build())
                 .backprop(true)
-                .pretrain(false);
-
-        new ConvolutionLayerSetup(conf,height,width,channels);
+                .pretrain(false)
+                .cnnInputSize(height,width,channels);
 
         return conf.build();
     }
