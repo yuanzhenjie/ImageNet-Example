@@ -4,6 +4,7 @@ import imagenet.Utils.ImageNetLoader;
 import imagenet.Utils.ModelUtils;
 import imagenet.sampleModels.AlexNet;
 import org.apache.commons.io.FilenameUtils;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -12,6 +13,9 @@ import org.apache.spark.input.PortableDataStream;
 import org.canova.api.util.ClassPathResource;
 import org.canova.api.writable.Writable;
 import org.canova.image.recordreader.ImageNetRecordReader;
+import org.canova.spark.functions.data.FilesAsBytesFunction;
+import org.canova.spark.functions.data.RecordReaderBytesFunction;
+import org.canova.spark.functions.pairdata.BytesPairWritable;
 import org.deeplearning4j.eval.Evaluation;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.canova.spark.functions.RecordReaderFunction;
@@ -22,10 +26,9 @@ import org.kohsuke.args4j.Option;
 import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import scala.Tuple2;
 import org.nd4j.linalg.dataset.DataSet;
+import org.apache.hadoop.io.Text;
 
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -38,9 +41,9 @@ public class CNNImageNetSparkExample {
     private static final Logger log = LoggerFactory.getLogger(CNNImageNetSparkExample.class);
 
     @Option(name="--modelType",usage="Type of model (AlexNet, VGGNetA, VGGNetB)",aliases = "-mT")
-    private String modelType = "AlexNet";
+    private String modelType = "LeNet";
     @Option(name="--batchSize",usage="Batch size",aliases="-b")
-    private int batchSize = 10;
+    private int batchSize = 2;
     @Option(name="--numBatches",usage="Number of batches",aliases="-nB")
     private int numBatches = 1;
     @Option(name="--numTestBatches",usage="Number of test batches",aliases="-nTB")
@@ -50,7 +53,7 @@ public class CNNImageNetSparkExample {
     @Option(name="--iterations",usage="Number of iterations",aliases="-i")
     private int iterations = 1;
     @Option(name="--numCategories",usage="Number of categories",aliases="-nC")
-    private int numCategories = 4;
+    private int numCategories = 2;
     @Option(name="--trainFolder",usage="Train folder",aliases="-taF")
     private String trainFolder = "train";
     @Option(name="--testFolder",usage="Test folder",aliases="-teF")
@@ -66,12 +69,11 @@ public class CNNImageNetSparkExample {
         String trainPath = FilenameUtils.concat(new ClassPathResource("train").getFile().getAbsolutePath(), "*");
         String testPath = FilenameUtils.concat(new ClassPathResource("test").getFile().getAbsolutePath(), "*");
 
-        final int numRows = 224;
-        final int numColumns = 224;
+        final int numRows = 100;
+        final int numColumns = 100;
         int nChannels = 3;
         int outputNum = 1860;
         int seed = 123;
-        int nCores = 6;
 
         // Parse command line arguments if they exist
         CmdLineParser parser = new CmdLineParser(this);
@@ -85,20 +87,29 @@ public class CNNImageNetSparkExample {
         }
 
         // Spark context
-        SparkConf conf = new SparkConf().setMaster("local");
-//        conf.setMaster("local[" + nCores + "]");
-//        conf.set("spark.executor.memory", "1024m");
+        SparkConf conf = new SparkConf()
+                .setMaster("local");
+//                .setMaster("local[6]");
         conf.setAppName("imageNet");
+//        conf.set("spar.executor.memory", "2g");
+//        conf.set("spark.driver.maxResultSize", "4g");
         conf.set(SparkDl4jMultiLayer.AVERAGE_EACH_ITERATION, String.valueOf(true));
         final JavaSparkContext sc = new JavaSparkContext(conf);
 
-        // TODO change to use serialize and bytes example
+        // TODO setup pre process to group by # pics, temp save and reload
         System.out.println("Load data...");
         // train data
+//        JavaPairRDD<String,PortableDataStream> sparkDataTrain = sc.binaryFiles(trainPath);
+//        RecordReaderFunction trainRrf = new RecordReaderFunction(new ImageNetRecordReader(numRows, numColumns, nChannels, labelPath, true, Pattern.quote("_")));
+//        JavaRDD<Collection<Writable>> trainRdd = sparkDataTrain.map(trainRrf);
+//        JavaRDD<DataSet> trainData = trainRdd.map(new CanovaDataSetFunction(-1, outputNum, false));
+
         JavaPairRDD<String,PortableDataStream> sparkDataTrain = sc.binaryFiles(trainPath);
-        RecordReaderFunction rrf = new RecordReaderFunction(new ImageNetRecordReader(numRows, numColumns, nChannels, labelPath, true, Pattern.quote("_")));
-        JavaRDD<Collection<Writable>> rdd = sparkDataTrain.map(rrf);
-        JavaRDD<DataSet> data = rdd.map(new CanovaDataSetFunction(-1, outputNum, false));
+        JavaPairRDD<Text, BytesWritable> filesTrainAsBytes = sparkDataTrain.mapToPair(new FilesAsBytesFunction());
+        RecordReaderBytesFunction trainRrf = new RecordReaderBytesFunction(new ImageNetRecordReader(numRows, numColumns, nChannels, labelPath, true, Pattern.quote("_")));
+        JavaRDD<Collection<Writable>> trainRdd = filesTrainAsBytes.map(trainRrf);
+        JavaRDD<DataSet> trainData = trainRdd.map(new CanovaDataSetFunction(-1, outputNum, false));
+
 
         // TODO check data
 //        List<Tuple2<String, PortableDataStream>> listPortable = sparkDataTrain.collect();
@@ -107,9 +118,14 @@ public class CNNImageNetSparkExample {
 
         // test data
         // TODO fix ImageNet iterator to load this data
-        List<DataSet> test = new ArrayList<>(78);
-        // TODO finish loading
-        JavaRDD<DataSet> testDS = sc.parallelize(test);
+        JavaPairRDD<String,PortableDataStream> sparkDataTest = sc.binaryFiles(testPath);
+        JavaPairRDD<Text, BytesWritable> filesTestAsBytes = sparkDataTest.mapToPair(new FilesAsBytesFunction());
+        RecordReaderBytesFunction testRrf = new RecordReaderBytesFunction(new ImageNetRecordReader(numRows, numColumns, nChannels, labelPath, true, Pattern.quote("_")));
+        JavaRDD<Collection<Writable>> testRdd = filesTestAsBytes.map(testRrf);
+        JavaRDD<DataSet> testData = testRdd.map(new CanovaDataSetFunction(-1, outputNum, false));
+
+        trainData.cache();
+        testData.cache();
 
         System.out.println("Build model...");
         MultiLayerNetwork model = new AlexNet(numRows, numColumns, nChannels, outputNum, seed, iterations).init();
@@ -117,16 +133,11 @@ public class CNNImageNetSparkExample {
 
         System.out.println("Train model...");
         SparkDl4jMultiLayer sparkModel = new SparkDl4jMultiLayer(sc, model);
-        model = sparkModel.fitDataSet(data); // TODO hangs and doesn't run correctly
+        model = sparkModel.fitDataSet(trainData); // TODO hangs and doesn't run correctly
 
         System.out.println("Eval model...");
         MultiLayerNetwork netCopy = sparkModel.getNetwork().clone();
-// TODO check eval with below
-//        Evaluation evalExpected = new Evaluation();
-//        INDArray outLocal = netCopy.output( input??? , Layer.TrainingMode.TEST);
-//        evalExpected.eval(labels???, outLocal);
-
-        Evaluation evalActual = sparkModel.evaluate(testDS,batchSize);
+        Evaluation evalActual = sparkModel.evaluate(testData,batchSize);
         log.info(evalActual.stats());
 
         System.out.println("Save model and parameters...");

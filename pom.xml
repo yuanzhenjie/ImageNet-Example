@@ -10,14 +10,11 @@
   <description>Examples of training different data sets</description>
   <properties>
     <nd4j.version>0.4-rc3.9-SNAPSHOT</nd4j.version>
-    <dl4j.version>	0.4-rc3.9-SNAPSHOT</dl4j.version>
+    <dl4j.version>0.4-rc3.9-SNAPSHOT</dl4j.version>
     <canova.version>0.0.0.15-SNAPSHOT</canova.version>
-    <spark.version>1.3.1</spark.version>
-      <!--<jackson.version>2.5.1</jackson.version>-->
+    <spark.version>1.6.0</spark.version>
     <scala.binary.version>2.10</scala.binary.version>
   </properties>
-
-
 
   <distributionManagement>
     <snapshotRepository>
@@ -50,21 +47,6 @@
           </exclusion>
         </exclusions>
       </dependency>
-      <!--<dependency>-->
-        <!--<groupId>org.codehaus.jackson</groupId>-->
-        <!--<artifactId>jackson-jaxrs</artifactId>-->
-        <!--<version>${jackson.version}</version>-->
-      <!--</dependency>-->
-        <!--<dependency>-->
-            <!--<groupId>org.codehaus.jackson</groupId>-->
-            <!--<artifactId>jackson-xc</artifactId>-->
-            <!--<version>${jackson.version}</version>-->
-        <!--</dependency>-->
-        <!--<dependency>-->
-            <!--<groupId>org.codehaus.jackson</groupId>-->
-            <!--<artifactId>jackson-mapper-asl</artifactId>-->
-            <!--<version>${jackson.version}</version>-->
-        <!--</dependency>-->
     </dependencies>
   </dependencyManagement>
   <dependencies>
@@ -78,11 +60,25 @@
       <groupId>org.deeplearning4j</groupId>
       <artifactId>deeplearning4j-core</artifactId>
       <version>${dl4j.version}</version>
+      <exclusions>
+        <!--Excluded to avoid conflict with version required for Spark -->
+        <exclusion>
+          <artifactId>jackson-databind</artifactId>
+          <groupId>com.fasterxml.jackson.core</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.deeplearning4j</groupId>
       <artifactId>deeplearning4j-ui</artifactId>
       <version>${dl4j.version}</version>
+      <exclusions>
+        <!--Excluded to avoid conflict with version required for Spark -->
+        <exclusion>
+          <artifactId>jackson-databind</artifactId>
+          <groupId>com.fasterxml.jackson.core</groupId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.nd4j</groupId>
@@ -98,6 +94,11 @@
       <artifactId>canova-nd4j-codec</artifactId>
       <groupId>org.nd4j</groupId>
       <version>${canova.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.deeplearning4j</groupId>
+      <artifactId>dl4j-spark</artifactId>
+      <version>${dl4j.version}</version>
     </dependency>
       <dependency>
           <artifactId>canova-spark</artifactId>
@@ -115,32 +116,13 @@
                 <groupId>javax.servlet</groupId>
                 <artifactId>servlet-api</artifactId>
             </exclusion>
+
         </exclusions>
-    </dependency>
-    <dependency>
-      <groupId>org.deeplearning4j</groupId>
-      <artifactId>dl4j-spark</artifactId>
-      <version>${dl4j.version}</version>
     </dependency>
   </dependencies>
 
   <build>
     <plugins>
-      <!--<plugin>-->
-        <!--<groupId>org.codehaus.mojo</groupId>-->
-        <!--<artifactId>exec-maven-plugin</artifactId>-->
-        <!--<version>1.4.0</version>-->
-        <!--<executions>-->
-          <!--<execution>-->
-            <!--<goals>-->
-              <!--<goal>exec</goal>-->
-            <!--</goals>-->
-          <!--</execution>-->
-        <!--</executions>-->
-        <!--<configuration>-->
-          <!--<executable>java</executable>-->
-        <!--</configuration>-->
-      <!--</plugin>-->
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-shade-plugin</artifactId>

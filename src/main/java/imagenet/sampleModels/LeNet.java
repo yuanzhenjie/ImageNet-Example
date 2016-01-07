@@ -6,6 +6,7 @@ import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
 import org.deeplearning4j.nn.conf.Updater;
 import org.deeplearning4j.nn.conf.distribution.GaussianDistribution;
+import org.deeplearning4j.nn.conf.distribution.NormalDistribution;
 import org.deeplearning4j.nn.conf.layers.ConvolutionLayer;
 import org.deeplearning4j.nn.conf.layers.DenseLayer;
 import org.deeplearning4j.nn.conf.layers.OutputLayer;
@@ -46,7 +47,7 @@ public class LeNet {
                 .iterations(iterations)
                 .activation("sigmoid")
                 .weightInit(WeightInit.DISTRIBUTION)
-                .dist(new GaussianDistribution(0.0, 0.01))
+                .dist(new NormalDistribution(0.0, 0.01))
 //                .learningRate(7*10e-5)
                 .learningRate(1e-3)
                 .learningRateScoreBasedDecayRate(1e-1)

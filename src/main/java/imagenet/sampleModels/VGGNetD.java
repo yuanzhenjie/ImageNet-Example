@@ -60,7 +60,7 @@ public class VGGNetD {
                 .updater(Updater.NESTEROVS)
                         // TODO pretrain with smaller net for first couple CNN layer weights, use Distribution for rest OR http://jmlr.org/proceedings/papers/v9/glorot10a/glorot10a.pdf with Relu
                 .weightInit(WeightInit.RELU)
-        //                .dist(new GaussianDistribution(0.0, 0.01)) // uncomment if using WeightInit.DISTRIBUTION
+        //                .dist(new NormalDistribution(0.0, 0.01)) // uncomment if using WeightInit.DISTRIBUTION
                 .iterations(iterations)
                 .gradientNormalization(GradientNormalization.RenormalizeL2PerLayer) // normalize to prevent vanishing or exploding gradients
                 .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
