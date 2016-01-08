@@ -84,5 +84,14 @@ public class ImageNetDataSetIterator extends RecordReaderDataSetIterator {
         super(new ImageNetLoader(version).getRecordReader(imgDim[0], imgDim[1], imgDim[2], numExamples, numCategories), batchSize, imgDim[0] * imgDim[1] * imgDim[2], numCategories);
     }
 
+    /**
+     * Create ImageNet data specific iterator
+     * @param batchSize the the batch size of the examples
+     * @param imgDim an array of width, height and channels
+     * @param numExamples the overall number of examples
+     * */
+    public ImageNetDataSetIterator(int batchSize, int numExamples, int[] imgDim, int numCategories, int totalNumCategories, String version) {
+        super(new ImageNetLoader(version).getRecordReader(imgDim[0], imgDim[1], imgDim[2], numExamples, numCategories), batchSize, imgDim[0] * imgDim[1] * imgDim[2], totalNumCategories);
+    }
 
 }

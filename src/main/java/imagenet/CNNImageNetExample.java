@@ -49,7 +49,7 @@ public class CNNImageNetExample {
     @Option(name="--batchSize",usage="Batch size",aliases="-b")
     private int batchSize = 10;
     @Option(name="--testBatchSize",usage="Test Batch size",aliases="-tB")
-    private int testBatchSize = 2;
+    private int testBatchSize = 10;
     @Option(name="--numBatches",usage="Number of batches",aliases="-nB")
     private int numBatches = 1;
     @Option(name="--numTestBatches",usage="Number of test batches",aliases="-nTB")
@@ -126,7 +126,7 @@ public class CNNImageNetExample {
         log.info("Load data....");
         dataIter = new ImageNetDataSetIterator(batchSize, totalTrainNumExamples, new int[] {numRows, numColumns, nChannels}, numCategories, outputNum);
 
-        DataSet ds = dataIter.next();
+//        DataSet ds = dataIter.next();
         log.info("Build model....");
         if (confName != null && paramName != null) {
             String confPath = FilenameUtils.concat(outputPath, confName + "conf.yaml");
@@ -201,7 +201,7 @@ public class CNNImageNetExample {
 //                testRecordReader.initialize(new LimitFileSplit(new File(testData), allForms, totalNumExamples, numCategories, Pattern.quote("_"), 0, new Random(123)));
 //                testIter = new RecordReaderDataSetIterator(testRecordReader, batchSize, numRows * numColumns * nChannels, 1860);
 
-                testIter = new ImageNetDataSetIterator(testBatchSize, totalTestNumExamples, new int[] {numRows, numColumns, nChannels}, outputNum, "CLS_VAL");
+                testIter = new ImageNetDataSetIterator(testBatchSize, totalTestNumExamples, new int[] {numRows, numColumns, nChannels}, numCategories, outputNum, "CLS_VAL");
                 MultipleEpochsIterator testEpochIter = new MultipleEpochsIterator(numEpochs, testIter);
 
                 startTimeEval = System.currentTimeMillis();
