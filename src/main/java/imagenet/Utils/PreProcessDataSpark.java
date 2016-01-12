@@ -1,7 +1,8 @@
 package imagenet.Utils;
 
 /**
- * Created by nyghtowl on 1/7/16.
+ * Prep data for spark
+ * Create Hadoop sequence files for train and test
  */
 public class PreProcessDataSpark {
 }

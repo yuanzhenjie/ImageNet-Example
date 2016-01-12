@@ -57,7 +57,6 @@ public class ImageNetLoader extends BaseImageLoader{
 
     String version = "CLS_TRAIN"; // CLS_Train, CLS_VAL, CLS_TEST, DET_TRAIN, DET_VAL, DET_TEST
 
-
     public ImageNetLoader(File localDir){
         this.fullDir = localDir;
         switch (version) {
@@ -184,4 +183,9 @@ public class ImageNetLoader extends BaseImageLoader{
         }
         return recordReader;
     }
+
+    public List<String> getLabels(){
+        return labels;
+    }
+
 }
