@@ -25,61 +25,77 @@ public class ModelUtils {
 
     private ModelUtils(){}
 
-    public static void saveModelAndParameters(MultiLayerNetwork net, String basePath) throws IOException {
+    public static void saveModelAndParameters(MultiLayerNetwork net, String basePath) {
         String confPath = FilenameUtils.concat(basePath, net.toString()+"-conf.json");
         String paramPath = FilenameUtils.concat(basePath, net.toString() + ".bin");
         log.info("Saving model and parameters to {} and {} ...",  confPath, paramPath);
 
         // save parameters
-        DataOutputStream dos = new DataOutputStream(new FileOutputStream(paramPath));
-        Nd4j.write(net.params(), dos);
-        dos.flush();
-        dos.close();
+        try {
+            DataOutputStream dos = new DataOutputStream(new FileOutputStream(paramPath));
+            Nd4j.write(net.params(), dos);
+            dos.flush();
+            dos.close();
 
-        // save model configuration
-        FileUtils.write(new File(confPath), net.conf().toJson());
+            // save model configuration
+            FileUtils.write(new File(confPath), net.conf().toJson());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    public static MultiLayerNetwork loadModelAndParameters(File confPath, String paramPath) throws IOException {
+    public static MultiLayerNetwork loadModelAndParameters(File confPath, String paramPath) {
         log.info("Loading saved model and parameters...");
-
+        MultiLayerNetwork savedNetwork = null;
         // load parameters
-        MultiLayerConfiguration confFromJson = MultiLayerConfiguration.fromJson(FileUtils.readFileToString(confPath));
-        DataInputStream dis = new DataInputStream(new FileInputStream(paramPath));
-        INDArray newParams = Nd4j.read(dis);
-        dis.close();
+        try {
+            MultiLayerConfiguration confFromJson = MultiLayerConfiguration.fromJson(FileUtils.readFileToString(confPath));
+            DataInputStream dis = new DataInputStream(new FileInputStream(paramPath));
+            INDArray newParams = Nd4j.read(dis);
+            dis.close();
 
-        // load model configuration
-        MultiLayerNetwork savedNetwork = new MultiLayerNetwork(confFromJson);
-        savedNetwork.init();
-        savedNetwork.setParams(newParams);
-
+            // load model configuration
+            savedNetwork = new MultiLayerNetwork(confFromJson);
+            savedNetwork.init();
+            savedNetwork.setParams(newParams);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         return savedNetwork;
     }
 
-    public static void saveLayerParameters(INDArray param, String paramPath) throws IOException {
+    public static void saveLayerParameters(INDArray param, String paramPath)  {
         // save parameters for each layer
         log.info("Saving parameters to {} ...", paramPath);
 
-        DataOutputStream dos = new DataOutputStream(new FileOutputStream(paramPath));
-        Nd4j.write(param, dos);
-        dos.flush();
-        dos.close();
+        try {
+            DataOutputStream dos = new DataOutputStream(new FileOutputStream(paramPath));
+            Nd4j.write(param, dos);
+            dos.flush();
+            dos.close();
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
     }
 
-    public static Layer loadLayerParameters(Layer layer, String paramPath) throws IOException{
+    public static Layer loadLayerParameters(Layer layer, String paramPath) {
         // load parameters for each layer
         String name = layer.conf().getLayer().getLayerName();
         log.info("Loading saved parameters for layer {} ...", name);
 
+        try{
         DataInputStream dis = new DataInputStream(new FileInputStream(paramPath));
         INDArray param = Nd4j.read(dis);
         dis.close();
         layer.setParams(param);
+        } catch(IOException e) {
+            e.printStackTrace();
+        }
+
         return layer;
     }
 
-    public static void saveParameters(MultiLayerNetwork model, int[] layerIds, Map<Integer, String> paramPaths) throws IOException {
+    public static void saveParameters(MultiLayerNetwork model, int[] layerIds, Map<Integer, String> paramPaths) {
         Layer layer;
         for(int layerId: layerIds) {
             layer = model.getLayer(layerId);
@@ -89,7 +105,7 @@ public class ModelUtils {
         }
     }
 
-    public static void saveParameters(MultiLayerNetwork model, String[] layerIds, Map<String, String> paramPaths) throws IOException {
+    public static void saveParameters(MultiLayerNetwork model, String[] layerIds, Map<String, String> paramPaths) {
         Layer layer;
         for(String layerId: layerIds) {
             layer = model.getLayer(layerId);
@@ -98,7 +114,7 @@ public class ModelUtils {
             }
         }
     }
-    public static MultiLayerNetwork loadParameters(MultiLayerNetwork model, int[] layerIds, Map<Integer, String> paramPaths) throws IOException {
+    public static MultiLayerNetwork loadParameters(MultiLayerNetwork model, int[] layerIds, Map<Integer, String> paramPaths) {
         Layer layer;
         for(int layerId: layerIds) {
             layer = model.getLayer(layerId);
@@ -107,7 +123,7 @@ public class ModelUtils {
         return model;
     }
 
-    public static MultiLayerNetwork loadParameters(MultiLayerNetwork model, String[] layerIds, Map<String, String> paramPaths) throws IOException {
+    public static MultiLayerNetwork loadParameters(MultiLayerNetwork model, String[] layerIds, Map<String, String> paramPaths) {
         Layer layer;
         for(String layerId: layerIds) {
             layer = model.getLayer(layerId);
