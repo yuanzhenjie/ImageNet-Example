@@ -56,3 +56,4 @@ metastore_db
 Word2vec-index/
 src/main/resources/test/*
 src/main/resources/train/*
+src/main/resources/val/*
