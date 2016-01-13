@@ -26,7 +26,8 @@ import java.util.Map;
 
 /**
  *
- *  Olga Russakovsky*, Jia Deng*, Hao Su, Jonathan Krause, Sanjeev Satheesh, Sean Ma, Zhiheng Huang,
+ * References: ImageNet
+ * Olga Russakovsky*, Jia Deng*, Hao Su, Jonathan Krause, Sanjeev Satheesh, Sean Ma, Zhiheng Huang,
  * Andrej Karpathy, Aditya Khosla, Michael Bernstein, Alexander C. Berg and Li Fei-Fei.
  * (* = equal contribution) ImageNet Large Scale Visual Recognition Challenge. arXiv:1409.0575, 2014.
  *
@@ -42,9 +43,9 @@ public class CNNImageNetMain {
     @Option(name="--modelType",usage="Type of model (AlexNet, VGGNetA, VGGNetB)",aliases = "-mT")
     protected String modelType = "LeNet";
     @Option(name="--batchSize",usage="Batch size",aliases="-b")
-    protected int batchSize = 50;
+    protected int batchSize = 5;
     @Option(name="--testBatchSize",usage="Test Batch size",aliases="-tB")
-    protected int testBatchSize = 50;
+    protected int testBatchSize = 5;
     @Option(name="--numBatches",usage="Number of batches",aliases="-nB")
     protected int numBatches = 1;
     @Option(name="--numTestBatches",usage="Number of test batches",aliases="-nTB")
@@ -59,10 +60,6 @@ public class CNNImageNetMain {
     protected String trainFolder = "train";
     @Option(name="--testFolder",usage="Test folder",aliases="-teF")
     protected String testFolder = "test";
-    @Option(name="--loadModel",usage="Save model",aliases="-lM")
-    protected boolean loadModel = false;
-    @Option(name="--loadParams",usage="Save parameters",aliases="-lP")
-    protected boolean loadParams = false;
     @Option(name="--saveModel",usage="Save model",aliases="-sM")
     protected boolean saveModel = false;
     @Option(name="--saveParams",usage="Save parameters",aliases="-sP")
@@ -130,7 +127,7 @@ public class CNNImageNetMain {
             case "SparkCluster":
                 throw new NotImplementedException("Detection has not been setup yet");
         }
-        log.info("****************Example finished********************");
+        System.out.println("****************Example finished********************");
     }
 
     protected void buildModel() {
@@ -138,7 +135,7 @@ public class CNNImageNetMain {
 //        int[] layerIdsA = {0,1,3,4,13,14,15}; // specific to VGGA
 //        int[] layerIdsD = {0,1,3,4,18,19,20}; // specific to VGGD
 
-        log.info("Build model....");
+        System.out.println("Build model....");
         if (confName != null && paramName != null) {
             String confPath = FilenameUtils.concat(outputPath, confName + "conf.yaml");
             String paramPath = FilenameUtils.concat(outputPath, paramName + "param.bin");
@@ -156,7 +153,7 @@ public class CNNImageNetMain {
                     break;
                 case "VGGNetD":
                     model = new VGGNetD(HEIGHT, WIDTH, CHANNELS, outputNum, seed, iterations).init();
-                    if (loadParams) {
+                    if (paramName != null) {
                         paramPaths = ModelUtils.getStringParamPaths(model, outputPath, layerIdsVGG);
                         ModelUtils.loadParameters(model, layerIdsVGG, paramPaths);
                     }
@@ -184,10 +181,10 @@ public class CNNImageNetMain {
     }
 
     protected void saveAndPrintResults(){
-        log.info("****************************************************");
+        System.out.println("****************************************************");
         System.out.println("Total training runtime: " + trainTime + " minutes");
         System.out.println("Total evaluation runtime: " + testTime + " minutes");
-        log.info("****************************************************");
+        System.out.println("****************************************************");
         if (saveModel) ModelUtils.saveModelAndParameters(model, outputPath.toString());
         if (saveParams) ModelUtils.saveParameters(model, layerIdsVGG, paramPaths);
 

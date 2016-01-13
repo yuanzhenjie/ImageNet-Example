@@ -56,7 +56,7 @@ public class CNNImageNetExample extends CNNImageNetMain{
     }
 
     private MultipleEpochsIterator loadData(int batchSize, int totalNumExamples, String mode){
-        log.info("Load data....");
+        System.out.println("Load data....");
         //// asyncIter = new AsyncDataSetIterator(dataIter, 1); TODO doesn't have next(num)
 
         // TODO incorporate some formate of below code when using full validation set to pass valLabelMap through iterator
@@ -70,7 +70,7 @@ public class CNNImageNetExample extends CNNImageNetMain{
     }
 
     private void trainModel(MultipleEpochsIterator data){
-        log.info("Train model....");
+        System.out.println("Train model....");
         startTime = System.currentTimeMillis();
         model.fit(data);
         endTime = System.currentTimeMillis();
@@ -78,7 +78,7 @@ public class CNNImageNetExample extends CNNImageNetMain{
     }
 
     private void evaluatePerformance(MultipleEpochsIterator iter){
-        log.info("Evaluate model....");
+        System.out.println("Evaluate model....");
         DataSet imgNet;
         INDArray output;
 
@@ -91,15 +91,15 @@ public class CNNImageNetExample extends CNNImageNetMain{
             eval.eval(imgNet.getLabels(), output);
         }
         endTime = System.currentTimeMillis();
-        log.info(eval.stats());
-        log.info("****************************************************");
+        System.out.println(eval.stats());
+        System.out.println("****************************************************");
         testTime = (int) (endTime - startTime) / 60000;
 
     }
 
     private void gradientCheck(DataSetIterator dataIter, MultiLayerNetwork model){
         DataSet imgNet;
-        log.info("Gradient Check....");
+        System.out.println("Gradient Check....");
 
         imgNet = dataIter.next();
         String name = new Object() {
