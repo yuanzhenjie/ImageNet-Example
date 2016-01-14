@@ -61,16 +61,17 @@ public class CNNImageNetSparkExample extends CNNImageNetMain{
 
     private JavaSparkContext setupSpark(){
         SparkConf conf = new SparkConf()
-                .setMaster("local[*]");
+                .setMaster("local["+batchSize/numBatches+"]");
         conf.setAppName("imageNet");
 //        conf.set("spak.executor.memory", "4g");
 //        conf.set("spak.driver.memory", "4g");
 //        conf.set("spark.driver.maxResultSize", "1g");
-//        conf.set(SparkDl4jMultiLayer.AVERAGE_EACH_ITERATION, String.valueOf(true));
+        conf.set(SparkDl4jMultiLayer.AVERAGE_EACH_ITERATION, String.valueOf(true));
+//        conf.set(SparkDl4jMultiLayer.ACCUM_GRADIENT, String.valueOf(true));
         return new JavaSparkContext(conf);
     }
 
-    private JavaRDD<DataSet> loadData(JavaSparkContext sc, String path, int totalNumExamples) {
+    private JavaRDD<DataSet> loadData(JavaSparkContext sc, String path, int totalNumberExamples) {
         String regexSplit = Pattern.quote("_");
         boolean appendLabel = true;
         // TODO setup pre process to group by # pics, temp save and reload
@@ -83,7 +84,7 @@ public class CNNImageNetSparkExample extends CNNImageNetMain{
 //        JavaRDD<DataSet> data = rdd.map(new CanovaDataSetFunction(-1, outputNum, false));
 
         JavaRDD<DataSet> dataRdd = rdd.map(new CanovaDataSetFunction(-1, outputNum, false));
-        List<DataSet> listData = dataRdd.take(batchSize * numBatches); // should have features and labels (1*1860) filled out
+        List<DataSet> listData = dataRdd.take(totalNumberExamples); // should have features and labels (1*1860) filled out
         JavaRDD<DataSet> data = sc.parallelize(listData);
 
         // TODO check data
@@ -107,7 +108,7 @@ public class CNNImageNetSparkExample extends CNNImageNetMain{
     private void evaluatePerformance(SparkDl4jMultiLayer model, JavaRDD<DataSet> testData) {
         System.out.println("Eval model...");
         startTime = System.currentTimeMillis();
-        Evaluation evalActual = model.evaluate(testData, testBatchSize, labels, false);
+        Evaluation evalActual = model.evaluate(testData, labels, false);
         System.out.println(evalActual.stats());
         endTime = System.currentTimeMillis();
         testTime = (int) (endTime - startTime) / 60000;

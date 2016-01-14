@@ -15,14 +15,17 @@ import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
+import org.nd4j.linalg.api.buffer.DataBuffer;
+import org.nd4j.linalg.factory.Nd4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryPoolMXBean;
+import java.lang.management.MemoryType;
+import java.lang.management.MemoryUsage;
+import java.util.*;
 
 /**
  *
@@ -41,21 +44,21 @@ public class CNNImageNetMain {
     @Option(name="--version",usage="Version to run (Standard, SparkStandAlone, SparkCluster)",aliases = "-v")
     protected String version = "SparkStandAlone";
     @Option(name="--modelType",usage="Type of model (AlexNet, VGGNetA, VGGNetB)",aliases = "-mT")
-    protected String modelType = "LeNet";
+    protected String modelType = "AlexNet";
     @Option(name="--batchSize",usage="Batch size",aliases="-b")
-    protected int batchSize = 5;
+    protected int batchSize = 10;
     @Option(name="--testBatchSize",usage="Test Batch size",aliases="-tB")
-    protected int testBatchSize = 5;
+    protected int testBatchSize = batchSize;
     @Option(name="--numBatches",usage="Number of batches",aliases="-nB")
     protected int numBatches = 1;
     @Option(name="--numTestBatches",usage="Number of test batches",aliases="-nTB")
-    protected int numTestBatches = 1;
+    protected int numTestBatches = numBatches;
     @Option(name="--numEpochs",usage="Number of epochs",aliases="-nE")
     protected int numEpochs = 1;
     @Option(name="--iterations",usage="Number of iterations",aliases="-i")
     protected int iterations = 1;
     @Option(name="--numCategories",usage="Number of categories",aliases="-nC")
-    protected int numCategories = 1;
+    protected int numCategories = 2;
     @Option(name="--trainFolder",usage="Train folder",aliases="-taF")
     protected String trainFolder = "train";
     @Option(name="--testFolder",usage="Test folder",aliases="-teF")
@@ -75,8 +78,8 @@ public class CNNImageNetMain {
     protected int trainTime = 0;
     protected int testTime = 0;
 
-    protected static final int WIDTH = 224;
-    protected static final int HEIGHT = 224;
+    protected static final int WIDTH = 100;
+    protected static final int HEIGHT = 100;
     protected static final int CHANNELS = 3;
     protected static final int outputNum = 1860;
     protected int seed = 123;
@@ -107,6 +110,7 @@ public class CNNImageNetMain {
     protected String[] layerIdsVGG = {"cnn1", "cnn2", "cnn3", "cnn4", "ffn1", "ffn2", "output"};
 
     public void run(String[] args) throws Exception {
+        Nd4j.dtype = DataBuffer.Type.FLOAT;
         // Parse command line arguments if they exist
         CmdLineParser parser = new CmdLineParser(this);
         try {
@@ -128,6 +132,30 @@ public class CNNImageNetMain {
                 throw new NotImplementedException("Detection has not been setup yet");
         }
         System.out.println("****************Example finished********************");
+    }
+
+
+    private void getRAMNeeds() {
+        // Prints memory usage. Used if checking bandwidth on machines.
+        List memBeans = ManagementFactory.getMemoryPoolMXBeans();
+        for (Iterator i = memBeans.iterator(); i.hasNext(); ) {
+
+            MemoryPoolMXBean mpool = (MemoryPoolMXBean) i.next();
+            MemoryUsage usage = mpool.getUsage();
+
+            String name = mpool.getName();
+            float init = usage.getInit() / 1000;
+            float used = usage.getUsed() / 1000;
+            float committed = usage.getCommitted() / 1000;
+            float max = usage.getMax() / 1000;
+            float pctUsed = (used / max) * 100;
+            float pctCommitted = (committed / max) * 100;
+            System.out.println("Memory " + name + " info: " + pctUsed + " " + pctCommitted);
+
+            if (mpool.getType().equals(MemoryType.HEAP)) {
+                System.out.println("RAM used: " + mpool.getCollectionUsage().toString());
+            }
+        }
     }
 
     protected void buildModel() {
