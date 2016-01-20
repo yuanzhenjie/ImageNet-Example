@@ -26,7 +26,6 @@ import java.util.regex.Pattern;
 
 
 /**
- * Created by nyghtowl on 11/24/15.
  */
 public class CNNImageNetSparkExample extends CNNImageNetMain{
     private static final Logger log = LoggerFactory.getLogger(CNNImageNetSparkExample.class);
@@ -34,7 +33,7 @@ public class CNNImageNetSparkExample extends CNNImageNetMain{
 
     public void initialize() throws Exception{
         // Spark context
-        JavaSparkContext sc = setupSpark();
+        JavaSparkContext sc = (version == "SparkStandAlone")? setupLocalSpark(): setupClusterSpark();
 
         // Load data
         JavaRDD<DataSet> trainData = loadData(sc, trainPath, totalTrainNumExamples);
@@ -55,19 +54,26 @@ public class CNNImageNetSparkExample extends CNNImageNetMain{
         saveAndPrintResults();
 
         // Close
-//        cleanUp(trainData);
-//        cleanUp(testData);
+        cleanUp(trainData);
+        cleanUp(testData);
     }
 
-    private JavaSparkContext setupSpark(){
+    private JavaSparkContext setupLocalSpark(){
         SparkConf conf = new SparkConf()
-                .setMaster("local["+batchSize/numBatches+"]");
-        conf.setAppName("imageNet");
+                .setMaster("local[*]");
+        conf.setAppName("ImageNet Local");
 //        conf.set("spak.executor.memory", "4g");
 //        conf.set("spak.driver.memory", "4g");
 //        conf.set("spark.driver.maxResultSize", "1g");
         conf.set(SparkDl4jMultiLayer.AVERAGE_EACH_ITERATION, String.valueOf(true));
 //        conf.set(SparkDl4jMultiLayer.ACCUM_GRADIENT, String.valueOf(true));
+        return new JavaSparkContext(conf);
+    }
+
+
+    private JavaSparkContext setupClusterSpark(){
+        SparkConf conf = new SparkConf();
+        conf.setAppName("ImageNet Cluster");
         return new JavaSparkContext(conf);
     }
 
@@ -98,7 +104,7 @@ public class CNNImageNetSparkExample extends CNNImageNetMain{
     private MultiLayerNetwork trainModel(SparkDl4jMultiLayer model, JavaRDD<DataSet> data){
         System.out.println("Train model...");
         startTime = System.currentTimeMillis();
-        model.fitDataSet(data);
+        model.fitDataSet(data, batchSize, totalTrainNumExamples, numBatches);
         endTime = System.currentTimeMillis();
         trainTime = (int) (endTime - startTime) / 60000;
         return model.getNetwork().clone();

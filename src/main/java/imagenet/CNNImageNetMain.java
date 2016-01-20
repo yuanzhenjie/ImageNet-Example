@@ -44,21 +44,21 @@ public class CNNImageNetMain {
     @Option(name="--version",usage="Version to run (Standard, SparkStandAlone, SparkCluster)",aliases = "-v")
     protected String version = "SparkStandAlone";
     @Option(name="--modelType",usage="Type of model (AlexNet, VGGNetA, VGGNetB)",aliases = "-mT")
-    protected String modelType = "AlexNet";
+    protected String modelType = "LeNet";
     @Option(name="--batchSize",usage="Batch size",aliases="-b")
-    protected int batchSize = 10;
+    protected int batchSize = 100;
     @Option(name="--testBatchSize",usage="Test Batch size",aliases="-tB")
     protected int testBatchSize = batchSize;
     @Option(name="--numBatches",usage="Number of batches",aliases="-nB")
-    protected int numBatches = 1;
+    protected int numBatches = 5;
     @Option(name="--numTestBatches",usage="Number of test batches",aliases="-nTB")
     protected int numTestBatches = numBatches;
     @Option(name="--numEpochs",usage="Number of epochs",aliases="-nE")
-    protected int numEpochs = 1;
+    protected int numEpochs = 10;
     @Option(name="--iterations",usage="Number of iterations",aliases="-i")
-    protected int iterations = 1;
+    protected int iterations = 10;
     @Option(name="--numCategories",usage="Number of categories",aliases="-nC")
-    protected int numCategories = 2;
+    protected int numCategories = 4;
     @Option(name="--trainFolder",usage="Train folder",aliases="-taF")
     protected String trainFolder = "train";
     @Option(name="--testFolder",usage="Test folder",aliases="-teF")
@@ -78,8 +78,8 @@ public class CNNImageNetMain {
     protected int trainTime = 0;
     protected int testTime = 0;
 
-    protected static final int WIDTH = 100;
-    protected static final int HEIGHT = 100;
+    protected static final int WIDTH = 40;
+    protected static final int HEIGHT = 40;
     protected static final int CHANNELS = 3;
     protected static final int outputNum = 1860;
     protected int seed = 123;
@@ -129,7 +129,8 @@ public class CNNImageNetMain {
                 new CNNImageNetSparkExample().initialize();
                 break;
             case "SparkCluster":
-                throw new NotImplementedException("Detection has not been setup yet");
+                new CNNImageNetSparkExample().initialize();
+                break;
         }
         System.out.println("****************Example finished********************");
     }
