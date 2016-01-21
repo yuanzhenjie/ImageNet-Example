@@ -28,6 +28,12 @@ import java.lang.management.MemoryUsage;
 import java.util.*;
 
 /**
+ * ImageNet is a large scale visual recognition challenge run by Stanford and Princeton. The competition covers
+ * standard object classification as well as identifying object location in the image.
+ *
+ * This file is the main class that is called when running the program. Pass in arguments to help
+ * adjust how and where the program will run. Note ImageNet is typically structured with 224 x 224
+ * pixel size images but this can be adjusted by change WIDTH & HEIGHT.
  *
  * References: ImageNet
  * Olga Russakovsky*, Jia Deng*, Hao Su, Jonathan Krause, Sanjeev Satheesh, Sean Ma, Zhiheng Huang,
@@ -42,7 +48,7 @@ public class CNNImageNetMain {
 
     // values to pass in from command line when compiled, esp running remotely
     @Option(name="--version",usage="Version to run (Standard, SparkStandAlone, SparkCluster)",aliases = "-v")
-    protected String version = "SparkStandAlone";
+    protected String version = "Standard";
     @Option(name="--modelType",usage="Type of model (AlexNet, VGGNetA, VGGNetB)",aliases = "-mT")
     protected String modelType = "LeNet";
     @Option(name="--batchSize",usage="Batch size",aliases="-b")

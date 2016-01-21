@@ -21,7 +21,6 @@ import org.nd4j.linalg.lossfunctions.LossFunctions;
  * On ImageNet error proven to decrease with depth but plateaued on the 16 weight layer imagenetExample
  * Following is based on 16 layer
  *
- * Created by nyghtowl on 9/11/15.
  */
 
 public class VGGNetD {

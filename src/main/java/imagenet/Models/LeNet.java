@@ -13,8 +13,10 @@ import org.deeplearning4j.nn.weights.WeightInit;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
 
 /**
+ * This model is listed to provide a simpler structure to easily test with.
+ * It is not meant to compete with the other options in regards to accuracy.
+ *
  * Reference: http://yann.lecun.com/exdb/publis/pdf/lecun-98.pdf
- * Created by nyghtowl on 9/11/15.
  */
 public class LeNet {
 

@@ -18,8 +18,7 @@ import java.util.*;
 import static org.junit.Assert.assertTrue;
 
 /**
- *
- * Created by nyghtowl on 9/24/15.
+ * Standard configuration used to run ImageNet on a single machine.
  */
 public class CNNImageNetExample extends CNNImageNetMain{
 

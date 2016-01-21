@@ -1,14 +1,13 @@
 package imagenet.Utils;
 
-import org.canova.api.records.reader.RecordReader;
 import org.canova.image.loader.CifarLoader;
 import org.deeplearning4j.datasets.canova.RecordReaderDataSetIterator;
 
-import java.util.List;
 
 /**
- * Created by nyghtowl on 12/18/15.
+ * DL4J DataSetIterator specific to this project.
  */
+
 public class ImageNetDataSetIterator extends RecordReaderDataSetIterator {
 
 

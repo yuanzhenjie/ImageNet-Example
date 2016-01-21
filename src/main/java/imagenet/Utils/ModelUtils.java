@@ -15,10 +15,9 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Util to save and load models and parameters.
- *
- * Created by nyghtowl on 11/26/15.
+ * Project utility class to save and load models and parameters.
  */
+
 public class ModelUtils {
 
     private static final Logger log = LoggerFactory.getLogger(ModelUtils.class);

@@ -12,8 +12,12 @@ import java.io.IOException;
 import java.util.Iterator;
 
 /**
- * Created by nyghtowl on 12/14/15.
+ * Project class to transform images
+ *
+ * Includes cropping and resize. Note the functionality here has been transfered and covered in ImageReader.
+ * Thus this is left more for reference.
  */
+
 public class ImageTransformUtils {
     private static final Logger log = LoggerFactory.getLogger(ImageTransformUtils.class);
     protected String[] allowFormat = {"jpg", "jpeg", "JPG", "JPEG"};

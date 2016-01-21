@@ -26,6 +26,8 @@ import java.util.regex.Pattern;
 
 
 /**
+ * Spark configuration to run ImageNet. The version argument from CNNImageNetMain sets whether it will run
+ * SparkStandalone on just a local machine or SparkCluster on a cluster with master and workers.
  */
 public class CNNImageNetSparkExample extends CNNImageNetMain{
     private static final Logger log = LoggerFactory.getLogger(CNNImageNetSparkExample.class);

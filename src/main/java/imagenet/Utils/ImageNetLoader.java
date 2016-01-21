@@ -18,8 +18,9 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 /**
- * Created by nyghtowl on 12/18/15.
+ * Canova Loader specific to this project.
  */
+
 public class ImageNetLoader extends BaseImageLoader{
 
     public final static int NUM_CLS_TRAIN_IMAGES = 1281167;
