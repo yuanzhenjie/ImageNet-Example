@@ -1,25 +1,22 @@
-package imagenet.sampleModels;
+package imagenet.Models;
 
 import org.deeplearning4j.nn.api.OptimizationAlgorithm;
-import org.deeplearning4j.nn.conf.GradientNormalization;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
-import org.deeplearning4j.nn.conf.Updater;
-import org.deeplearning4j.nn.conf.distribution.GaussianDistribution;
+import org.deeplearning4j.nn.conf.distribution.NormalDistribution;
 import org.deeplearning4j.nn.conf.layers.ConvolutionLayer;
 import org.deeplearning4j.nn.conf.layers.DenseLayer;
 import org.deeplearning4j.nn.conf.layers.OutputLayer;
 import org.deeplearning4j.nn.conf.layers.SubsamplingLayer;
-import org.deeplearning4j.nn.conf.layers.setup.ConvolutionLayerSetup;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.nn.weights.WeightInit;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
 
-import java.util.Arrays;
-
 /**
+ * This model is listed to provide a simpler structure to easily test with.
+ * It is not meant to compete with the other options in regards to accuracy.
+ *
  * Reference: http://yann.lecun.com/exdb/publis/pdf/lecun-98.pdf
- * Created by nyghtowl on 9/11/15.
  */
 public class LeNet {
 
@@ -46,7 +43,7 @@ public class LeNet {
                 .iterations(iterations)
                 .activation("sigmoid")
                 .weightInit(WeightInit.DISTRIBUTION)
-                .dist(new GaussianDistribution(0.0, 0.01))
+                .dist(new NormalDistribution(0.0, 0.01))
 //                .learningRate(7*10e-5)
                 .learningRate(1e-3)
                 .learningRateScoreBasedDecayRate(1e-1)
@@ -82,10 +79,10 @@ public class LeNet {
                         .activation("softmax") // radial basis function required
                         .build())
                 .backprop(true)
-                .pretrain(false);
+                .pretrain(false)
+                .cnnInputSize(height,width,channels);
 
 
-        new ConvolutionLayerSetup(conf,height,width,channels);
         MultiLayerNetwork model = new MultiLayerNetwork(conf.build());
         model.init();
 

@@ -1,152 +1,130 @@
 package imagenet;
 
-import imagenet.sampleModels.AlexNet;
-import org.apache.commons.io.FileUtils;
+import org.apache.hadoop.io.BytesWritable;
 import org.apache.spark.SparkConf;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.api.java.function.Function;
-import org.apache.spark.mllib.feature.StandardScalerModel;
-import org.apache.spark.mllib.linalg.Vector;
+import org.apache.spark.input.PortableDataStream;
 import org.canova.api.records.reader.RecordReader;
-import org.canova.api.split.LimitFileSplit;
+import org.canova.api.writable.Writable;
 import org.canova.image.recordreader.ImageNetRecordReader;
-import org.canova.image.recordreader.ImageRecordReader;
-import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
+import org.canova.spark.functions.data.FilesAsBytesFunction;
+import org.canova.spark.functions.data.RecordReaderBytesFunction;
+import org.deeplearning4j.eval.Evaluation;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
-import org.deeplearning4j.spark.util.MLLibUtil;
-import org.kohsuke.args4j.CmdLineException;
-import org.kohsuke.args4j.CmdLineParser;
-import org.kohsuke.args4j.Option;
-import org.nd4j.linalg.dataset.api.iterator.StandardScaler;
-import org.apache.spark.mllib.regression.LabeledPoint;
+import org.deeplearning4j.spark.canova.CanovaDataSetFunction;
 import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer;
-import org.nd4j.linalg.factory.Nd4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.nd4j.linalg.dataset.DataSet;
+import org.apache.hadoop.io.Text;
 
-import java.io.BufferedOutputStream;
-import java.io.DataOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.util.Random;
+import java.util.Collection;
+import java.util.List;
 import java.util.regex.Pattern;
 
 
 /**
- * Created by nyghtowl on 11/24/15.
+ * Spark configuration to run ImageNet. The version argument from CNNImageNetMain sets whether it will run
+ * SparkStandalone on just a local machine or SparkCluster on a cluster with master and workers.
  */
-public class CNNImageNetSparkExample {
+public class CNNImageNetSparkExample extends CNNImageNetMain{
     private static final Logger log = LoggerFactory.getLogger(CNNImageNetSparkExample.class);
 
-    @Option(name="--modelType",usage="Type of model (AlexNet, VGGNetA, VGGNetB)",aliases = "-mT")
-    private String modelType = "AlexNet";
-    @Option(name="--batchSize",usage="Batch size",aliases="-b")
-    private int batchSize = 8;
-    @Option(name="--numBatches",usage="Number of batches",aliases="-nB")
-    private int numBatches = 1;
-    @Option(name="--numTestBatches",usage="Number of test batches",aliases="-nTB")
-    private int numTestBatches = 1;
-    @Option(name="--numEpochs",usage="Number of epochs",aliases="-nE")
-    private int numEpochs = 1;
-    @Option(name="--iterations",usage="Number of iterations",aliases="-i")
-    private int iterations = 1;
-    @Option(name="--numCategories",usage="Number of categories",aliases="-nC")
-    private int numCategories = 4;
-    @Option(name="--trainFolder",usage="Train folder",aliases="-taF")
-    private String trainFolder = "train";
-    @Option(name="--testFolder",usage="Test folder",aliases="-teF")
-    private String testFolder = "val/val-sample";
-    @Option(name="--saveParams",usage="Save parameters",aliases="-sP")
-    private boolean saveParams = true;
+
+    public void initialize() throws Exception{
+        // Spark context
+        JavaSparkContext sc = (version == "SparkStandAlone")? setupLocalSpark(): setupClusterSpark();
+
+        // Load data
+        JavaRDD<DataSet> trainData = loadData(sc, trainPath, totalTrainNumExamples);
+        JavaRDD<DataSet> testData = loadData(sc, testPath, totalTestNumExamples);
+
+        // Build
+        buildModel();
+        setListeners();
+
+        // Train
+        SparkDl4jMultiLayer sparkModelCopy = new SparkDl4jMultiLayer(sc,
+                trainModel(new SparkDl4jMultiLayer(sc, model), trainData));
+
+        // Eval
+        evaluatePerformance(sparkModelCopy, testData);
+
+        // Save
+        saveAndPrintResults();
+
+        // Close
+        cleanUp(trainData);
+        cleanUp(testData);
+    }
+
+    private JavaSparkContext setupLocalSpark(){
+        SparkConf conf = new SparkConf()
+                .setMaster("local[*]");
+        conf.setAppName("ImageNet Local");
+//        conf.set("spak.executor.memory", "4g");
+//        conf.set("spak.driver.memory", "4g");
+//        conf.set("spark.driver.maxResultSize", "1g");
+        conf.set(SparkDl4jMultiLayer.AVERAGE_EACH_ITERATION, String.valueOf(true));
+//        conf.set(SparkDl4jMultiLayer.ACCUM_GRADIENT, String.valueOf(true));
+        return new JavaSparkContext(conf);
+    }
 
 
-    public void doMain(String[] args) throws Exception{
-        String basePath = System.getProperty("user.home") + File.separator + "Documents" + File.separator + "skymind" + File.separator + "imagenet" + File.separator;
-        String trainData = basePath + trainFolder + File.separator;
-        String testData = basePath + testFolder + File.separator;
-        String labelPath = basePath + "cls-loc-labels.csv";
-        String confPath = this.toString() + "conf.yaml";
-        String paramPath = this.toString() + "param.bin";
-
-        final int numRows = 224;
-        final int numColumns = 224;
-        int nChannels = 3;
-        int outputNum = 1860;
-        int seed = 123;
-
-        // Parse command line arguments if they exist
-        CmdLineParser parser = new CmdLineParser(this);
-        try {
-            parser.parseArgument(args);
-
-        } catch (CmdLineException e) {
-            // handling of wrong arguments
-            System.err.println(e.getMessage());
-            parser.printUsage(System.err);
-        }
-
-        if (args == null || args.length != 3) {
-            String err = "Invalid input. Expect 3 arg passed. Usage: args[0] = input path, args[1] = output folder, " +
-                    "args[2] = summary stats output file (local)";
-            throw new RuntimeException(err);
-        }
-
-        for (int i = 0; i < args.length; i++) {
-            System.out.println("args[" + i + "] = \"" + args[i] + "\"");
-        }
-
+    private JavaSparkContext setupClusterSpark(){
         SparkConf conf = new SparkConf();
-        conf.setMaster("local[*]");
-        conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
-        conf.set("spark.executor.memory", "528m");
-        conf.setAppName("imageNet");
-        final JavaSparkContext sc = new JavaSparkContext(conf);
+        conf.setAppName("ImageNet Cluster");
+        return new JavaSparkContext(conf);
+    }
 
-
+    private JavaRDD<DataSet> loadData(JavaSparkContext sc, String path, int totalNumberExamples) {
+        String regexSplit = Pattern.quote("_");
+        boolean appendLabel = true;
+        // TODO setup pre process to group by # pics, temp save and reload
         System.out.println("Load data...");
-        // TODO finish applying how to load data - especially limitSplit
+        JavaPairRDD<String,PortableDataStream> sparkData = sc.binaryFiles(path);
+        JavaPairRDD<Text, BytesWritable> filesAsBytes = sparkData.mapToPair(new FilesAsBytesFunction());
+        RecordReader recordReader = new ImageNetRecordReader(HEIGHT, WIDTH, CHANNELS, labelPath, appendLabel, regexSplit);
+        RecordReaderBytesFunction recordReaderFunc = new RecordReaderBytesFunction(recordReader);
+        JavaRDD<Collection<Writable>> rdd = filesAsBytes.map(recordReaderFunc);
+//        JavaRDD<DataSet> data = rdd.map(new CanovaDataSetFunction(-1, outputNum, false));
 
-        //load the images from the bucket setting the size to 28 x 28
-        final String s3Bucket = "file:///home/ec2-user..."; // from S3
-        int totalTrainNumExamples = batchSize * numBatches;
-        String[] allForms = {"jpg", "jpeg", "JPG", "JPEG"};
-        RecordReader recordReader = new ImageNetRecordReader(numColumns, numRows, nChannels, true, labelPath);
-        recordReader.initialize(new LimitFileSplit(new File(trainData), allForms, totalTrainNumExamples, numCategories, Pattern.quote("_"), 0, new Random(123)));
-//        JavaRDD<LabeledPoint> data = MLLibUtil.fromDataSet(sc.binaryFiles(s3Bucket + "/*")
-//                , recordReader);
+        JavaRDD<DataSet> dataRdd = rdd.map(new CanovaDataSetFunction(-1, outputNum, false));
+        List<DataSet> listData = dataRdd.take(totalNumberExamples); // should have features and labels (1*1860) filled out
+        JavaRDD<DataSet> data = sc.parallelize(listData);
 
-        System.out.println("Build model...");
-        MultiLayerConfiguration netConf = new AlexNet(numRows, numColumns, nChannels, outputNum, seed, iterations).conf();
-//        SparkDl4jMultiLayer model = new SparkDl4jMultiLayer(sc.sc(),netConf);
-//        JavaRDD<LabeledPoint> mllLibData = MLLibUtil.fromBinary(data);
+        // TODO check data
+//        List<Tuple2<String, PortableDataStream>> listPortable = sparkData.collect();
+//        List<Collection<Writable>> listRDD = rdd.collect();
 
-//        MultiLayerNetwork network = SparkDl4jMultiLayer.train(mllLibData,netConf);
+        data.cache();
+        return data;
+    }
 
-
+    private MultiLayerNetwork trainModel(SparkDl4jMultiLayer model, JavaRDD<DataSet> data){
         System.out.println("Train model...");
-//        MultiLayerNetwork trainedNetwork = model.fit(trainTestSplit[0],100);
-//        model.fit(sc,data);
-
-        System.out.println("Eval model...");
-        //TODO
-
-        System.out.println("Save model...");
-//        BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(paramPath));
-//        Nd4j.write(model.params(), bos);
-//        bos.flush();
-//        bos.close();
-// TODO Setup spark instance to output params publicly - lombok
-//        Nd4j.write(network.params(), new DataOutputStream(new FileOutputStream(paramPath)));
-//        FileUtils.write(new File(confPath), model.conf().toYaml()); // Yaml or Json?
-//        log.info("Saved configuration and parameters to: {}, {}", confPath, paramPath);
-
-
+        startTime = System.currentTimeMillis();
+        model.fitDataSet(data, batchSize, totalTrainNumExamples, numBatches);
+        endTime = System.currentTimeMillis();
+        trainTime = (int) (endTime - startTime) / 60000;
+        return model.getNetwork().clone();
 
     }
 
-    public static void main(String[] args) throws Exception {
-        new CNNImageNetSparkExample().doMain(args);
+    private void evaluatePerformance(SparkDl4jMultiLayer model, JavaRDD<DataSet> testData) {
+        System.out.println("Eval model...");
+        startTime = System.currentTimeMillis();
+        Evaluation evalActual = model.evaluate(testData, labels, false);
+        System.out.println(evalActual.stats());
+        endTime = System.currentTimeMillis();
+        testTime = (int) (endTime - startTime) / 60000;
+    }
+
+
+    public void cleanUp(JavaRDD<DataSet> data) {
+        data.unpersist();
     }
 
 }

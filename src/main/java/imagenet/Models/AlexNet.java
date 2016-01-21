@@ -1,4 +1,4 @@
-package imagenet.sampleModels;
+package imagenet.Models;
 
 import org.deeplearning4j.nn.api.OptimizationAlgorithm;
 import org.deeplearning4j.nn.conf.GradientNormalization;
@@ -6,8 +6,8 @@ import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
 import org.deeplearning4j.nn.conf.Updater;
 import org.deeplearning4j.nn.conf.distribution.GaussianDistribution;
+import org.deeplearning4j.nn.conf.distribution.NormalDistribution;
 import org.deeplearning4j.nn.conf.layers.*;
-import org.deeplearning4j.nn.conf.layers.setup.ConvolutionLayerSetup;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.nn.weights.WeightInit;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
@@ -57,7 +57,7 @@ public class AlexNet {
         MultiLayerConfiguration.Builder conf = new NeuralNetConfiguration.Builder()
                 .seed(seed)
                 .weightInit(WeightInit.DISTRIBUTION)
-                .dist(new GaussianDistribution(0.0, 0.01))
+                .dist(new NormalDistribution(0.0, 0.01))
                 .activation("relu")
                 .updater(Updater.NESTEROVS)
                 .iterations(iterations)
@@ -136,10 +136,9 @@ public class AlexNet {
                         .activation("softmax")
                         .build())
                 .backprop(true)
-                .pretrain(false);
+                .pretrain(false)
+                .cnnInputSize(height,width,channels);
 
-
-        new ConvolutionLayerSetup(conf,height,width,channels);
         return conf.build();
     }
 

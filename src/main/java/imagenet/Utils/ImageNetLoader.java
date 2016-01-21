@@ -18,8 +18,9 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 /**
- * Created by nyghtowl on 12/18/15.
+ * Canova Loader specific to this project.
  */
+
 public class ImageNetLoader extends BaseImageLoader{
 
     public final static int NUM_CLS_TRAIN_IMAGES = 1281167;
@@ -55,12 +56,11 @@ public class ImageNetLoader extends BaseImageLoader{
     protected int numExamples = NUM_CLS_TRAIN_IMAGES;
     protected int numLabels = NUM_CLS_LABELS;
 
-    String version = "CLS_TRAIN"; // CLS_Train, CLS_VAL, CLS_TEST, DET_TRAIN, DET_VAL, DET_TEST
-
+    protected String mode = "CLS_TRAIN"; // CLS_Train, CLS_VAL, CLS_TEST, DET_TRAIN, DET_VAL, DET_TEST
 
     public ImageNetLoader(File localDir){
         this.fullDir = localDir;
-        switch (version) {
+        switch (mode) {
             case "CLS_TRAIN":
                 load(fullDir, new File(BASE_DIR, urlTrainFile));
                 break;
@@ -69,7 +69,7 @@ public class ImageNetLoader extends BaseImageLoader{
                 break;
             case "DET_TRAIN":
                 throw new NotImplementedException("Detection has not been setup yet");
-            case "DET_TEST":
+            case "DET_VAL":
                 throw new NotImplementedException("Detection has not been setup yet");
         }
     }
@@ -79,9 +79,9 @@ public class ImageNetLoader extends BaseImageLoader{
         load(fullDir, new File(BASE_DIR, urlTrainFile));
     }
 
-    public ImageNetLoader(String version) {
-        this.version = version;
-        switch (version) {
+    public ImageNetLoader(String mode) {
+        this.mode = mode;
+        switch (mode) {
             case "CLS_TRAIN":
                 this.fullDir = fullTrainDir;
                 load(fullDir, new File(BASE_DIR, urlTrainFile));
@@ -92,7 +92,7 @@ public class ImageNetLoader extends BaseImageLoader{
                 break;
             case "DET_TRAIN":
                 throw new NotImplementedException("Detection has not been setup yet");
-            case "DET_TEST":
+            case "DET_VAL":
                 throw new NotImplementedException("Detection has not been setup yet");
         }
     }
@@ -167,6 +167,11 @@ public class ImageNetLoader extends BaseImageLoader{
         return getRecordReader(width, height, channels, true, regexPattern);
     }
 
+    public RecordReader getRecordReader(int width, int height, int channels, int numExamples, int numCategories) {
+        this.numExamples = numExamples;
+        this.numLabels = numCategories;
+        return getRecordReader(width, height, channels, true, regexPattern);
+    }
 
     public RecordReader getRecordReader(int width, int height, int channels, boolean appendLabel, String regexPattern) {
         RecordReader recordReader = new ImageNetRecordReader(width, height, channels, FilenameUtils.concat(BASE_DIR, LABEL_FILENAME), appendLabel, regexPattern);
@@ -179,4 +184,9 @@ public class ImageNetLoader extends BaseImageLoader{
         }
         return recordReader;
     }
+
+    public List<String> getLabels(){
+        return labels;
+    }
+
 }

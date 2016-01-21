@@ -1,29 +1,17 @@
-package imagenet.sampleModels;
+package imagenet.Models;
 
-import imagenet.Utils.ModelUtils;
-import org.deeplearning4j.nn.api.Layer;
-import org.deeplearning4j.nn.api.Model;
 import org.deeplearning4j.nn.api.OptimizationAlgorithm;
 import org.deeplearning4j.nn.conf.GradientNormalization;
 import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
 import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
 import org.deeplearning4j.nn.conf.Updater;
-import org.deeplearning4j.nn.conf.distribution.GaussianDistribution;
-import org.deeplearning4j.nn.conf.distribution.NormalDistribution;
 import org.deeplearning4j.nn.conf.layers.ConvolutionLayer;
 import org.deeplearning4j.nn.conf.layers.DenseLayer;
 import org.deeplearning4j.nn.conf.layers.OutputLayer;
 import org.deeplearning4j.nn.conf.layers.SubsamplingLayer;
-import org.deeplearning4j.nn.conf.layers.setup.ConvolutionLayerSetup;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.nn.weights.WeightInit;
-import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.lossfunctions.LossFunctions;
-
-import java.io.File;
-import java.io.IOException;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Reference: http://arxiv.org/pdf/1409.1556.pdf
@@ -33,7 +21,6 @@ import java.util.Map;
  * On ImageNet error proven to decrease with depth but plateaued on the 16 weight layer imagenetExample
  * Following is based on 16 layer
  *
- * Created by nyghtowl on 9/11/15.
  */
 
 public class VGGNetD {
@@ -60,7 +47,7 @@ public class VGGNetD {
                 .updater(Updater.NESTEROVS)
                         // TODO pretrain with smaller net for first couple CNN layer weights, use Distribution for rest OR http://jmlr.org/proceedings/papers/v9/glorot10a/glorot10a.pdf with Relu
                 .weightInit(WeightInit.RELU)
-        //                .dist(new GaussianDistribution(0.0, 0.01)) // uncomment if using WeightInit.DISTRIBUTION
+        //                .dist(new NormalDistribution(0.0, 0.01)) // uncomment if using WeightInit.DISTRIBUTION
                 .iterations(iterations)
                 .gradientNormalization(GradientNormalization.RenormalizeL2PerLayer) // normalize to prevent vanishing or exploding gradients
                 .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
@@ -154,9 +141,9 @@ public class VGGNetD {
                         .activation("softmax")
                         .build())
                 .backprop(true)
-                .pretrain(false);
+                .pretrain(false)
+                .cnnInputSize(height,width,channels);
 
-            new ConvolutionLayerSetup(conf,height,width,channels);
             return conf.build();
         }
 
