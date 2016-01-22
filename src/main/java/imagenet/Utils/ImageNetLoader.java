@@ -10,10 +10,7 @@ import org.canova.api.writable.Writable;
 import org.canova.image.loader.BaseImageLoader;
 import org.canova.image.recordreader.ImageNetRecordReader;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
 import java.util.*;
 import java.util.regex.Pattern;
 
@@ -21,7 +18,7 @@ import java.util.regex.Pattern;
  * Canova Loader specific to this project.
  */
 
-public class ImageNetLoader extends BaseImageLoader{
+public class ImageNetLoader extends BaseImageLoader implements Serializable{
 
     public final static int NUM_CLS_TRAIN_IMAGES = 1281167;
     public final static int NUM_CLS_VAL_IMAGES = 50000;
@@ -48,7 +45,7 @@ public class ImageNetLoader extends BaseImageLoader{
 
     public final static String LOCAL_TRAIN_DIR = "train";
     protected File fullTrainDir = new File(BASE_DIR, LOCAL_TRAIN_DIR);
-    public final static String LOCAL_VAL_DIR = "val";
+    public final static String LOCAL_VAL_DIR = "test";
     protected File fullTestDir = new File(BASE_DIR, LOCAL_VAL_DIR);
 
     protected File fullDir;

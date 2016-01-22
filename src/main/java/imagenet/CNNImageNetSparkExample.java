@@ -116,7 +116,7 @@ public class CNNImageNetSparkExample extends CNNImageNetMain{
     private void evaluatePerformance(SparkDl4jMultiLayer model, JavaRDD<DataSet> testData) {
         System.out.println("Eval model...");
         startTime = System.currentTimeMillis();
-        Evaluation evalActual = model.evaluate(testData, labels, false);
+        Evaluation evalActual = model.evaluate(testData, labels);
         System.out.println(evalActual.stats());
         endTime = System.currentTimeMillis();
         testTime = (int) (endTime - startTime) / 60000;
