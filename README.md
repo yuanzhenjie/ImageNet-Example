@@ -2,6 +2,7 @@
 
 ImageNet is a large scale visual recognition challenge run by Stanford and Princeton. The competition covers standard object classification as well as identifying object location in the image. This repo provides code for the ImageNet classification exercise.
   
+**This example is currenlty in development; thus,not complete.** If you find bugs, log an issue or send a PR. Help is welcome.
 
 ---
 **Model Options**
