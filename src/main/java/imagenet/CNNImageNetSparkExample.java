@@ -1,5 +1,6 @@
 package imagenet;
 
+import imagenet.Utils.PreProcessDataSpark;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -38,8 +39,9 @@ public class CNNImageNetSparkExample extends CNNImageNetMain{
         JavaSparkContext sc = (version == "SparkStandAlone")? setupLocalSpark(): setupClusterSpark();
 
         // Load data
-        JavaRDD<DataSet> trainData = loadData(sc, trainPath, totalTrainNumExamples);
-        JavaRDD<DataSet> testData = loadData(sc, testPath, totalTestNumExamples);
+        String seqOutputPath = null;
+        JavaRDD<DataSet> trainData = loadData(sc, trainPath, seqOutputPath, totalTrainNumExamples, false);
+        JavaRDD<DataSet> testData = loadData(sc, testPath, seqOutputPath, totalTestNumExamples, false);
 
         // Build
         buildModel();
@@ -79,27 +81,38 @@ public class CNNImageNetSparkExample extends CNNImageNetMain{
         return new JavaSparkContext(conf);
     }
 
-    private JavaRDD<DataSet> loadData(JavaSparkContext sc, String path, int totalNumberExamples) {
+    private JavaRDD<DataSet> loadData(JavaSparkContext sc, String inputPath, String seqOutputPath, int numberExamples, boolean save) {
+        System.out.println("Load data...");
+
+        JavaPairRDD<Text, BytesWritable> filesAsBytes;
+        JavaRDD<DataSet> data;
         String regexSplit = Pattern.quote("_");
         boolean appendLabel = true;
-        // TODO setup pre process to group by # pics, temp save and reload
-        System.out.println("Load data...");
-        JavaPairRDD<String,PortableDataStream> sparkData = sc.binaryFiles(path);
-        JavaPairRDD<Text, BytesWritable> filesAsBytes = sparkData.mapToPair(new FilesAsBytesFunction());
-        RecordReader recordReader = new ImageNetRecordReader(HEIGHT, WIDTH, CHANNELS, labelPath, appendLabel, regexSplit);
-        RecordReaderBytesFunction recordReaderFunc = new RecordReaderBytesFunction(recordReader);
+
+        if(inputPath==null && seqOutputPath != null){
+            filesAsBytes = sc.sequenceFile(seqOutputPath, Text.class,BytesWritable.class);
+        } else if(version == "SparkStandAlone"){
+            filesAsBytes = new PreProcessDataSpark(sc, inputPath, seqOutputPath, save).getFile();
+        } else {
+            throw new IllegalArgumentException("Data can not be loaded running on a cluaster without an outputPath.");
+        }
+
+        RecordReaderBytesFunction recordReaderFunc = new RecordReaderBytesFunction(
+                new ImageNetRecordReader(HEIGHT, WIDTH, CHANNELS, labelPath, appendLabel, regexSplit));
         JavaRDD<Collection<Writable>> rdd = filesAsBytes.map(recordReaderFunc);
-//        JavaRDD<DataSet> data = rdd.map(new CanovaDataSetFunction(-1, outputNum, false));
 
-        JavaRDD<DataSet> dataRdd = rdd.map(new CanovaDataSetFunction(-1, outputNum, false));
-        List<DataSet> listData = dataRdd.take(totalNumberExamples); // should have features and labels (1*1860) filled out
-        JavaRDD<DataSet> data = sc.parallelize(listData);
-
-        // TODO check data
-//        List<Tuple2<String, PortableDataStream>> listPortable = sparkData.collect();
-//        List<Collection<Writable>> listRDD = rdd.collect();
+        // Load all files in path
+        if(numberExamples==-1)
+            data = rdd.map(new CanovaDataSetFunction(-1, outputNum, false));
+        else {
+            // Limit number examples loaded
+            JavaRDD<DataSet> dataRdd = rdd.map(new CanovaDataSetFunction(-1, outputNum, false));
+            List<DataSet> listData = dataRdd.take(numberExamples); // should have features and labels (1*1860) filled out
+            data = sc.parallelize(listData);
+        }
 
         data.cache();
+        filesAsBytes.unpersist();
         return data;
     }
 

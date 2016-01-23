@@ -48,7 +48,7 @@ public class CNNImageNetMain {
 
     // values to pass in from command line when compiled, esp running remotely
     @Option(name="--version",usage="Version to run (Standard, SparkStandAlone, SparkCluster)",aliases = "-v")
-    protected String version = "Standard";
+    protected String version = "SparkStandAlone";
     @Option(name="--modelType",usage="Type of model (AlexNet, VGGNetA, VGGNetB)",aliases = "-mT")
     protected String modelType = "LeNet";
     @Option(name="--batchSize",usage="Batch size",aliases="-b")
@@ -60,9 +60,9 @@ public class CNNImageNetMain {
     @Option(name="--numTestBatches",usage="Number of test batches",aliases="-nTB")
     protected int numTestBatches = numBatches;
     @Option(name="--numEpochs",usage="Number of epochs",aliases="-nE")
-    protected int numEpochs = 10;
+    protected int numEpochs = 5;
     @Option(name="--iterations",usage="Number of iterations",aliases="-i")
-    protected int iterations = 10;
+    protected int iterations = 5;
     @Option(name="--numCategories",usage="Number of categories",aliases="-nC")
     protected int numCategories = 4;
     @Option(name="--trainFolder",usage="Train folder",aliases="-taF")
