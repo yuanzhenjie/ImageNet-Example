@@ -136,6 +136,12 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
                 Object url =  val.toArray()[1];
                 String fileName = val.toArray()[0] + "_" + count++ + ".jpg";
                 downloadAndUntar(generateMaps(fileName, url.toString()), dir);
+                try{
+                    downloadAndUntar(generateMaps(fileName, url.toString()), dir);
+                }
+                catch(Exception e){
+                    e.printStackTrace();
+                }
             }
         }
     }
