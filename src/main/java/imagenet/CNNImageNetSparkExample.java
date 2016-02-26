@@ -1,16 +1,13 @@
 package imagenet;
 
-import imagenet.Utils.PreProcessDataSpark;
+import imagenet.Utils.PreProcessData;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.apache.spark.input.PortableDataStream;
-import org.canova.api.records.reader.RecordReader;
 import org.canova.api.writable.Writable;
 import org.canova.image.recordreader.ImageNetRecordReader;
-import org.canova.spark.functions.data.FilesAsBytesFunction;
 import org.canova.spark.functions.data.RecordReaderBytesFunction;
 import org.deeplearning4j.eval.Evaluation;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
@@ -90,9 +87,11 @@ public class CNNImageNetSparkExample extends CNNImageNetMain{
         boolean appendLabel = true;
 
         if(inputPath==null && seqOutputPath != null){
-            filesAsBytes = sc.sequenceFile(seqOutputPath, Text.class,BytesWritable.class);
+            filesAsBytes = sc.sequenceFile(seqOutputPath, Text.class, BytesWritable.class);
         } else if(version == "SparkStandAlone"){
-            filesAsBytes = new PreProcessDataSpark(sc, inputPath, seqOutputPath, save).getFile();
+            PreProcessData pData = new PreProcessData(sc, save);
+            pData.setupSequnceFile(inputPath, seqOutputPath);
+            filesAsBytes = pData.getFile();
         } else {
             throw new IllegalArgumentException("Data can not be loaded running on a cluaster without an outputPath.");
         }

@@ -6,7 +6,10 @@ import org.slf4j.LoggerFactory;
 
 import javax.imageio.ImageIO;
 import java.awt.*;
+import java.awt.geom.AffineTransform;
+import java.awt.image.AffineTransformOp;
 import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
 import java.io.File;
 import java.io.IOException;
 import java.util.Iterator;
@@ -20,41 +23,16 @@ import java.util.Iterator;
 
 public class ImageTransformUtils {
     private static final Logger log = LoggerFactory.getLogger(ImageTransformUtils.class);
-    protected String[] allowFormat = {"jpg", "jpeg", "JPG", "JPEG"};
-    protected int newW = 28;
-    protected int newH = 28;
     protected int channelType = BufferedImage.TYPE_INT_RGB;
-
-    public ImageTransformUtils(int newW, int newH){
-        this.newW = newW;
-        this.newH = newH;
-    }
-
-    public ImageTransformUtils(int newW, int newH, int channelType){
-        this.newW = newW;
-        this.newH = newH;
-        this.channelType = channelType;
-    }
-
-    public ImageTransformUtils(int newW, int newH, String[] allowedFormat){
-        this.newW = newW;
-        this.newH = newH;
-        this.allowFormat = allowFormat;
-    }
+    protected BufferedImage bImg;
 
     public ImageTransformUtils(){}
 
-    public int[] imgStats(BufferedImage img){
-        int width = img.getWidth();
-        int height = img.getHeight();
-        return new int[] {width, height};
-    }
-
-    public BufferedImage centerCrop(BufferedImage img, int[] imgStats) {
+    public void centerCrop() {
         int x = 0;
         int y = 0;
-        int width = imgStats[0];
-        int height = imgStats[1];
+        int width = bImg.getWidth();
+        int height = bImg.getHeight();
         int diff = Math.abs(width - height) / 2;
 
         if (width > height) {
@@ -64,61 +42,84 @@ public class ImageTransformUtils {
             y = diff;
             height = height - diff;
         }
-        return img.getSubimage(x, y, width, height);
+        bImg = bImg.getSubimage(x, y, width, height);
     }
 
-    public BufferedImage resize(BufferedImage img, int newW, int newH) {
-        Image tmp = img.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
+    public void resize(int newW, int newH) {
+        Image tmp = bImg.getScaledInstance(newW, newH, Image.SCALE_SMOOTH);
         BufferedImage dimg = new BufferedImage(newW, newH, channelType);
 
         Graphics2D g2d = dimg.createGraphics();
         g2d.drawImage(tmp, 0, 0, null);
         g2d.dispose();
 
-        return dimg;
+        bImg = dimg;
     }
 
-    public int transformImage(File fileName, int numDel) {
+    public void flipImage(double rotationAngle) {
+        AffineTransform transform = new AffineTransform();
+        transform.rotate(rotationAngle, bImg.getWidth()/2, bImg.getHeight()/2);
+
+        AffineTransformOp op = new AffineTransformOp(transform, AffineTransformOp.TYPE_BILINEAR);
+        bImg = op.filter(bImg, null);
+    }
+
+    public void changeChannel(int type){
+        // TODO alpha only works with png so need to save as png if that is the output
+        // Options: BufferedImage.TYPE_BYTE_GRAY, TYPE_3BYTE_BGR, BufferedImage.TYPE_4BYTE_ABGR
+        bImg = new BufferedImage(bImg.getWidth(), bImg.getHeight(), type);
+        Graphics2D bGr = bImg.createGraphics();
+        bGr.drawImage(bImg, 0, 0, null);
+        bGr.dispose();
+    }
+
+    public void subtractConstantFromPixels(int constant){
+        // pull the color and subtract constant
+        // pull color and subtract other colors
+        // TODO finish building
+        byte[] pixels = ((DataBufferByte)bImg.getRaster().getDataBuffer()).getData();
+    }
+
+    public void centerResize(int newW, int newH) {
+        // center and crop image
+        int orig_w = bImg.getWidth();
+        int orig_h = bImg.getHeight();
+
+        // center and crop
+        if ( orig_w != orig_h) {
+            centerCrop();
+        }
+        // resize based on set size entered - defaults 28 x 28 and set rgb channel
+        if (newW != orig_w && newH != orig_h)
+            resize(newW, newH);
+
+    }
+
+    public void saveImage(File fileName){
         try {
-            BufferedImage img = ImageIO.read(fileName);
-            if (img != null) {
-                int[] imgStats = imgStats(img);
-                int orig_w = imgStats[0];
-                int orig_h = imgStats[1];
+            ImageIO.write(bImg, "jpg", fileName);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-                // center and crop TODO allow to create non square shapes
-                if ( orig_w != orig_h) {
-                    img = centerCrop(img, imgStats);
-                }
-
-                // resize based on set size entered - defaults 28 x 28 and set rgb channel
-                if (newW != orig_w && newH != orig_h)
-                    ImageIO.write(resize(img, newW, newH), "jpg", fileName);
-            } else {
+    public void convertToBuffer(File fileName){
+        BufferedImage img = null;
+        try {
+            img = ImageIO.read(fileName);
+            if (img == null) {
                 log.warn("This file is empty and has been deleted", fileName);
                 fileName.delete();
-                numDel += 1;
+                return;
             }
+            bImg = img;
         } catch (IOException e) {
             log.warn("Caught an IOException: " + e);
         }
-        return numDel;
     }
 
-    public void init(String name) {
-        File path = new File(name);
-        boolean recursive = true;
-        int numDel = 0;
-
-        if(path.isDirectory()) {
-            Iterator iter = FileUtils.iterateFiles(path, allowFormat, recursive);
-            while(iter.hasNext()) {
-                File fileName = (File) iter.next();
-                numDel = transformImage(fileName, numDel);
-            }
-        } else {
-            numDel = transformImage(new File(name), numDel);
-        }
-        log.info("Number of files deleted: " + numDel);
+    public BufferedImage getImage(){
+        return bImg;
     }
+
 }
