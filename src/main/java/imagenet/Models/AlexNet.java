@@ -28,6 +28,7 @@ import org.nd4j.linalg.lossfunctions.LossFunctions;
  * Weight distribution uses 0.1 std for all layers in the paper but 0.005 in the dense layers in the imagenetExample code
  *
  */
+@Deprecated
 public class AlexNet {
 
     private int height;

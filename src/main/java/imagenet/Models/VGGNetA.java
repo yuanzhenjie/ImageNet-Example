@@ -26,7 +26,7 @@ import org.nd4j.linalg.lossfunctions.LossFunctions;
  * Helpful to pretrain partial weights for 16 layer according to paper
  *
  * */
-
+@Deprecated
 public class VGGNetA {
 
     private int height;

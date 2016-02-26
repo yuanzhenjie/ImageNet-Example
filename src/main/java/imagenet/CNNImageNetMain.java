@@ -1,13 +1,13 @@
 package imagenet;
 
-import imagenet.Models.AlexNet;
-import imagenet.Models.LeNet;
-import imagenet.Models.VGGNetA;
-import imagenet.Models.VGGNetD;
 import imagenet.Utils.ImageNetLoader;
 import imagenet.Utils.ModelUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.NotImplementedException;
+import org.deeplearning4j.AlexNet;
+import org.deeplearning4j.LeNet;
+import org.deeplearning4j.VGGNetA;
+import org.deeplearning4j.VGGNetD;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.optimize.api.IterationListener;
 import org.deeplearning4j.optimize.listeners.ParamAndGradientIterationListener;
@@ -48,7 +48,7 @@ public class CNNImageNetMain {
 
     // values to pass in from command line when compiled, esp running remotely
     @Option(name="--version",usage="Version to run (Standard, SparkStandAlone, SparkCluster)",aliases = "-v")
-    protected String version = "SparkStandAlone";
+    protected String version = "Standard";
     @Option(name="--modelType",usage="Type of model (AlexNet, VGGNetA, VGGNetB)",aliases = "-mT")
     protected String modelType = "LeNet";
     @Option(name="--batchSize",usage="Batch size",aliases="-b")

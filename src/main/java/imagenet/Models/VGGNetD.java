@@ -22,7 +22,7 @@ import org.nd4j.linalg.lossfunctions.LossFunctions;
  * Following is based on 16 layer
  *
  */
-
+@Deprecated
 public class VGGNetD {
         private int height;
         private int width;
