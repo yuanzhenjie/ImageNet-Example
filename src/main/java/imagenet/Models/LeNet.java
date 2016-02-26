@@ -18,6 +18,7 @@ import org.nd4j.linalg.lossfunctions.LossFunctions;
  *
  * Reference: http://yann.lecun.com/exdb/publis/pdf/lecun-98.pdf
  */
+@Deprecated
 public class LeNet {
 
     private int height;
