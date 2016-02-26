@@ -1,7 +1,10 @@
 package imagenet;
 
+import imagenet.Utils.DataUtils;
 import imagenet.Utils.ImageTransformUtils;
 import org.apache.commons.io.FilenameUtils;
+
+import java.io.File;
 
 /**
  * Use this script to run ImageTransformUtils to transform images by cropping, resizing and setting channel.
@@ -11,12 +14,13 @@ public class TransformImages {
 
     public static void main(String[] args) {
 
-        ImageTransformUtils util = new ImageTransformUtils(224, 224);
+        // TODO pass in dimensions 224 x 224 and do the
+        DataUtils util = new DataUtils();
         String pathTrain = FilenameUtils.concat(System.getProperty("user.dir"), "src/main/resources/train/");
         String pathTest = FilenameUtils.concat(System.getProperty("user.dir"), "src/main/resources/test/");
 
-        util.init(pathTrain);
-        util.init(pathTest);
+        util.init(new File(pathTrain));
+        util.init(new File(pathTest));
     }
 
 }

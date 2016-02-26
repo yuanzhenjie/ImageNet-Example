@@ -53,7 +53,7 @@ public class DataUtils {
     // change pixels...
 
     // change file contents
-    public void basicInit(File inputPath) {
+    public void init(File inputPath) {
         boolean recursive = true;
 
         ImageTransformUtils imgTransform = new ImageTransformUtils();
