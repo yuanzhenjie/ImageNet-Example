@@ -2,6 +2,8 @@ package imagenet.Utils;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
+import org.nd4j.linalg.dataset.api.DataSet;
+import org.nd4j.linalg.dataset.api.DataSetPreProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -163,6 +165,14 @@ public class DataUtils {
         checkDirExists(new File(outputPath));
         segmentFileSplit(new File(inputPath), ppd);
 
+    }
+
+    public static class ImagePreProcessor implements DataSetPreProcessor {
+
+        @Override
+        public void preProcess(DataSet dataSet) {
+            dataSet.getFeatureMatrix().divi(255);  //[0,255] -> [0,1] for input pixel values
+        }
     }
 
 }
