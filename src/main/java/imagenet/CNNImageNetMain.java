@@ -3,7 +3,6 @@ package imagenet;
 import imagenet.Utils.ImageNetLoader;
 import imagenet.Utils.ModelUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.lang.NotImplementedException;
 import org.deeplearning4j.AlexNet;
 import org.deeplearning4j.LeNet;
 import org.deeplearning4j.VGGNetA;
@@ -12,6 +11,7 @@ import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.optimize.api.IterationListener;
 import org.deeplearning4j.optimize.listeners.ParamAndGradientIterationListener;
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
+import org.deeplearning4j.util.NetSaverLoaderUtils;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 import org.kohsuke.args4j.Option;
@@ -50,19 +50,19 @@ public class CNNImageNetMain {
     @Option(name="--version",usage="Version to run (Standard, SparkStandAlone, SparkCluster)",aliases = "-v")
     protected String version = "Standard";
     @Option(name="--modelType",usage="Type of model (AlexNet, VGGNetA, VGGNetB)",aliases = "-mT")
-    protected String modelType = "LeNet";
+    protected String modelType = "AlexNet";
     @Option(name="--batchSize",usage="Batch size",aliases="-b")
-    protected int batchSize = 100;
+    protected int batchSize = 40;
     @Option(name="--testBatchSize",usage="Test Batch size",aliases="-tB")
     protected int testBatchSize = batchSize;
     @Option(name="--numBatches",usage="Number of batches",aliases="-nB")
-    protected int numBatches = 5;
+    protected int numBatches = 1;
     @Option(name="--numTestBatches",usage="Number of test batches",aliases="-nTB")
     protected int numTestBatches = numBatches;
     @Option(name="--numEpochs",usage="Number of epochs",aliases="-nE")
-    protected int numEpochs = 5;
+    protected int numEpochs = 2;
     @Option(name="--iterations",usage="Number of iterations",aliases="-i")
-    protected int iterations = 5;
+    protected int iterations = 2;
     @Option(name="--numCategories",usage="Number of categories",aliases="-nC")
     protected int numCategories = 4;
     @Option(name="--trainFolder",usage="Train folder",aliases="-taF")
@@ -84,8 +84,8 @@ public class CNNImageNetMain {
     protected int trainTime = 0;
     protected int testTime = 0;
 
-    protected static final int WIDTH = 40;
-    protected static final int HEIGHT = 40;
+    protected static final int WIDTH = 150;
+    protected static final int HEIGHT = 150;
     protected static final int CHANNELS = 3;
     protected static final int outputNum = 1860;
     protected int seed = 123;
@@ -105,7 +105,7 @@ public class CNNImageNetMain {
 
     protected String labelPath = FilenameUtils.concat(basePath, ImageNetLoader.LABEL_FILENAME);
     protected String valLabelMap = FilenameUtils.concat(basePath, ImageNetLoader.VAL_MAP_FILENAME);
-    protected String outputPath = ModelUtils.defineOutputDir(modelType.toString());
+    protected String outputPath = NetSaverLoaderUtils.defineOutputDir(modelType.toString());
     protected String confPath = this.toString() + "conf.yaml";
     protected String paramPath = this.toString() + "param.bin";
     protected Map<String, String> paramPaths = new HashMap<>();
@@ -174,7 +174,7 @@ public class CNNImageNetMain {
         if (confName != null && paramName != null) {
             String confPath = FilenameUtils.concat(outputPath, confName + "conf.yaml");
             String paramPath = FilenameUtils.concat(outputPath, paramName + "param.bin");
-            model = ModelUtils.loadModelAndParameters(new File(confPath), paramPath);
+            model = NetSaverLoaderUtils.loadNetworkAndParameters(confPath, paramPath);
         } else {
             switch (modelType) {
                 case "LeNet":
@@ -189,8 +189,8 @@ public class CNNImageNetMain {
                 case "VGGNetD":
                     model = new VGGNetD(HEIGHT, WIDTH, CHANNELS, outputNum, seed, iterations).init();
                     if (paramName != null) {
-                        paramPaths = ModelUtils.getStringParamPaths(model, outputPath, layerIdsVGG);
-                        ModelUtils.loadParameters(model, layerIdsVGG, paramPaths);
+                        paramPaths = NetSaverLoaderUtils.getStringParamPaths(outputPath, layerIdsVGG);
+                        NetSaverLoaderUtils.loadParameters(model, layerIdsVGG, paramPaths);
                     }
                     break;
             }
@@ -220,8 +220,8 @@ public class CNNImageNetMain {
         System.out.println("Total training runtime: " + trainTime + " minutes");
         System.out.println("Total evaluation runtime: " + testTime + " minutes");
         System.out.println("****************************************************");
-        if (saveModel) ModelUtils.saveModelAndParameters(model, outputPath.toString());
-        if (saveParams) ModelUtils.saveParameters(model, layerIdsVGG, paramPaths);
+        if (saveModel) NetSaverLoaderUtils.saveNetworkAndParameters(model, outputPath.toString());
+        if (saveParams) NetSaverLoaderUtils.saveParameters(model, layerIdsVGG, paramPaths);
 
 
     }

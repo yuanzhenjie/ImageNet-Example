@@ -17,7 +17,7 @@ import java.util.Map;
 /**
  * Project utility class to save and load models and parameters.
  */
-
+@Deprecated
 public class ModelUtils {
 
     private static final Logger log = LoggerFactory.getLogger(ModelUtils.class);

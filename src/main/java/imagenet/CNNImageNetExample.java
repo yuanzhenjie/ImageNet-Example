@@ -68,6 +68,7 @@ public class CNNImageNetExample extends CNNImageNetMain{
                         new int[] {HEIGHT, WIDTH, CHANNELS}, numCategories, outputNum, mode));
     }
 
+
     private void trainModel(MultipleEpochsIterator data){
         System.out.println("Train model....");
         startTime = System.currentTimeMillis();
@@ -78,17 +79,10 @@ public class CNNImageNetExample extends CNNImageNetMain{
 
     private void evaluatePerformance(MultipleEpochsIterator iter){
         System.out.println("Evaluate model....");
-        DataSet imgNet;
-        INDArray output;
 
-        Evaluation eval = new Evaluation(labels);
         startTime = System.currentTimeMillis();
         //TODO setup iterator to randomize and pass in iterator vs doing a loop here
-        for(int i=0; i < numTestBatches; i++){
-            imgNet = iter.next(testBatchSize);
-            output = model.output(imgNet.getFeatureMatrix());
-            eval.eval(imgNet.getLabels(), output);
-        }
+        Evaluation eval = model.evaluate(iter, labels);
         endTime = System.currentTimeMillis();
         System.out.println(eval.stats());
         System.out.println("****************************************************");
