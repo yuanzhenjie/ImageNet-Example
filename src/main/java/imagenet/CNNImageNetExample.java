@@ -34,6 +34,7 @@ public class CNNImageNetExample extends CNNImageNetMain{
 
         // Load data
         MultipleEpochsIterator trainIter = loadData(batchSize, totalTrainNumExamples, "CLS_TRAIN");
+        numEpochs = 1;
         MultipleEpochsIterator testIter = loadData(testBatchSize, totalTestNumExamples, "CLS_VAL");
 
         // Build

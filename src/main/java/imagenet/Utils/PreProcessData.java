@@ -110,7 +110,6 @@ public class PreProcessData {
                 new ImageNetRecordReader(40, 40, 3, FilenameUtils.concat(ImageNetLoader.BASE_DIR, ImageNetLoader.LABEL_FILENAME), true, Pattern.quote("_")));
         JavaRDD<Collection<Writable>> rdd = data.map(recordReaderFunc);
         JavaRDD<DataSet> ds = rdd.map(new CanovaDataSetFunction(-1, 1860, false));
-        List<DataSet> v = ds.take(1);
     }
 
     public JavaPairRDD<Text, BytesWritable> getFile(){
