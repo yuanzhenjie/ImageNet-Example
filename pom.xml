@@ -14,6 +14,7 @@
     <canova.version>0.0.0.15-SNAPSHOT</canova.version>
     <spark.version>1.6.0</spark.version>
     <scala.binary.version>2.10</scala.binary.version>
+    <junit.version>4.12</junit.version>
   </properties>
 
   <distributionManagement>
@@ -35,69 +36,63 @@
       <version>${nd4j.version}</version>
       <!-- <scope>provided</scope> to reduce jar file size when not doing learning -->
     </dependency>
-    <!--<dependency>-->
-      <!--<groupId>org.jblas</groupId>-->
-      <!--<artifactId>jblas</artifactId>-->
-      <!--<version>1.2.4</version>-->
-    <!--</dependency>-->
     <dependency>
       <groupId>org.deeplearning4j</groupId>
       <artifactId>deeplearning4j-core</artifactId>
       <version>${dl4j.version}</version>
-      <!-- <scope>provided</scope> to reduce jar file size when not doing learning -->
       <exclusions>
-        <!--Excluded to avoid conflict with version required for Spark -->
         <exclusion>
-          <artifactId>jackson-databind</artifactId>
-          <groupId>com.fasterxml.jackson.core</groupId>
-        </exclusion>
+        <artifactId>jackson-databind</artifactId>
+        <groupId>com.fasterxml.jackson.core</groupId>
+      </exclusion>
       </exclusions>
     </dependency>
     <dependency>
       <groupId>org.deeplearning4j</groupId>
       <artifactId>deeplearning4j-ui</artifactId>
       <version>${dl4j.version}</version>
-      <!-- <scope>provided</scope> to reduce jar file size when not doing learning -->
     </dependency>
     <dependency>
       <artifactId>canova-nd4j-image</artifactId>
       <groupId>org.nd4j</groupId>
       <version>${canova.version}</version>
-      <!-- <scope>provided</scope> to reduce jar file size when not doing learning -->
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>19.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.deeplearning4j</groupId>
+      <artifactId>model-sanctuary</artifactId>
+      <version>1.0-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-yaml</artifactId>
+      <version>2.5.1</version>
     </dependency>
     <!-- Spark -->
     <dependency>
       <groupId>org.deeplearning4j</groupId>
       <artifactId>dl4j-spark</artifactId>
       <version>${dl4j.version}</version>
-      <!-- <scope>provided</scope> to reduce jar file size when not doing learning -->
     </dependency>
-      <dependency>
+    <dependency>
           <artifactId>canova-spark</artifactId>
           <groupId>org.nd4j</groupId>
           <version>${canova.version}</version>
-        <!-- <scope>provided</scope> to reduce jar file size when not doing learning -->
       </dependency>
-    <dependency>
-      <groupId>org.deeplearning4j</groupId>
-      <artifactId>model-sanctuary</artifactId>
-      <version>1.0-SNAPSHOT</version>
-    </dependency>
-
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-core_${scala.binary.version}</artifactId>
       <version>${spark.version}</version>
-      <!--<scope>provided</scope> &lt;!&ndash; to avoid packaging into jar when running via spark submit &ndash;&gt;-->
       <exclusions>
-            <exclusion>
-                <groupId>javax.servlet</groupId>
-                <artifactId>servlet-api</artifactId>
-            </exclusion>
             <exclusion>
               <groupId>org.slf4j</groupId>
               <artifactId>slf4j-log4j12</artifactId>
             </exclusion>
+        <!--address error: akka.ConfigurationException: Akka JAR version [2.3.11] does not match the provided config version [2.3.4]-->
           <exclusion>
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-remote_2.10</artifactId>
@@ -110,7 +105,18 @@
             <groupId>com.typesafe.akka</groupId>
             <artifactId>akka-slf4j_2.10</artifactId>
           </exclusion>
+        <!--resolves version conflicts between dropwizard for ui and spark-->
+        <exclusion>
+          <groupId>com.sun.jersey</groupId>
+          <artifactId>*</artifactId>
+        </exclusion>
         </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>${junit.version}</version>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 

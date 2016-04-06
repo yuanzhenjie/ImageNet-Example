@@ -15,7 +15,6 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.util.*;
 
-import static org.junit.Assert.assertTrue;
 
 /**
  * Standard configuration used to run ImageNet on a single machine.
@@ -85,7 +84,7 @@ public class CNNImageNetExample extends CNNImageNetMain{
         //TODO setup iterator to randomize and pass in iterator vs doing a loop here
         Evaluation eval = model.evaluate(iter, labels);
         endTime = System.currentTimeMillis();
-        System.out.println(eval.stats());
+        System.out.println(eval.stats(true));
         System.out.println("****************************************************");
         testTime = (int) (endTime - startTime) / 60000;
 
@@ -121,7 +120,7 @@ public class CNNImageNetExample extends CNNImageNetMain{
         boolean gradOK = GradientCheckUtil.checkGradients(model, default_eps, default_max_rel_error,
                 print_results, return_on_first_failure, imgNet.getFeatures(), imgNet.getLabels(), useUpdater);
 
-        assertTrue(gradOK);
+//        assertTrue(gradOK);
 
     }
 

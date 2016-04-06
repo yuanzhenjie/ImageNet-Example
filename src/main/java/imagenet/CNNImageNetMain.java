@@ -1,7 +1,6 @@
 package imagenet;
 
 import imagenet.Utils.ImageNetLoader;
-import imagenet.Utils.ModelUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.deeplearning4j.AlexNet;
 import org.deeplearning4j.LeNet;
@@ -11,6 +10,7 @@ import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.optimize.api.IterationListener;
 import org.deeplearning4j.optimize.listeners.ParamAndGradientIterationListener;
 import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
+import org.deeplearning4j.ui.weights.HistogramIterationListener;
 import org.deeplearning4j.util.NetSaverLoaderUtils;
 import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
@@ -50,7 +50,7 @@ public class CNNImageNetMain {
     @Option(name="--version",usage="Version to run (Standard, SparkStandAlone, SparkCluster)",aliases = "-v")
     protected String version = "Standard";
     @Option(name="--modelType",usage="Type of model (AlexNet, VGGNetA, VGGNetB)",aliases = "-mT")
-    protected String modelType = "AlexNet";
+    protected String modelType = "LeNet";
     @Option(name="--batchSize",usage="Batch size",aliases="-b")
     protected int batchSize = 40;
     @Option(name="--testBatchSize",usage="Test Batch size",aliases="-tB")
@@ -84,8 +84,8 @@ public class CNNImageNetMain {
     protected int trainTime = 0;
     protected int testTime = 0;
 
-    protected static final int WIDTH = 150;
     protected static final int HEIGHT = 150;
+    protected static final int WIDTH = 150;
     protected static final int CHANNELS = 3;
     protected static final int outputNum = 1860;
     protected int seed = 123;
@@ -209,8 +209,8 @@ public class CNNImageNetMain {
                 .printMeanAbsValue(true)
                 .delimiter("\t").build();
 
-        model.setListeners(Arrays.asList((IterationListener) new ScoreIterationListener(listenerFreq))); // not needed for spark?
-//        model.setListeners(Arrays.asList((IterationListener) new HistogramIterationListener(listenerFreq)));
+        model.setListeners(new ScoreIterationListener(listenerFreq)); // not needed for spark?
+        model.setListeners(new HistogramIterationListener(1));
 //        model.setListeners(Arrays.asList(new ScoreIterationListener(listenerFreq), paramListener));
 
     }
