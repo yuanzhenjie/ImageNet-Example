@@ -9,6 +9,7 @@ import org.canova.api.split.LimitFileSplit;
 import org.canova.api.writable.Writable;
 import org.canova.image.loader.BaseImageLoader;
 import org.canova.image.recordreader.ImageNetRecordReader;
+import org.nd4j.linalg.api.ndarray.INDArray;
 
 import java.io.*;
 import java.util.*;
@@ -74,6 +75,26 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
     public ImageNetLoader() {
         this.fullDir = fullTrainDir;
         load(fullDir, new File(BASE_DIR, urlTrainFile));
+    }
+
+    @Override
+    public INDArray asRowVector(File f) throws IOException {
+        return null;
+    }
+
+    @Override
+    public INDArray asRowVector(InputStream inputStream) throws IOException {
+        return null;
+    }
+
+    @Override
+    public INDArray asMatrix(File f) throws IOException {
+        return null;
+    }
+
+    @Override
+    public INDArray asMatrix(InputStream inputStream) throws IOException {
+        return null;
     }
 
     public ImageNetLoader(String mode) {
