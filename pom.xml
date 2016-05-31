@@ -10,6 +10,7 @@
     <description>Examples of training different data sets</description>
 
     <properties>
+        <nd4j.backend>nd4j-native</nd4j.backend>
         <nd4j.version>0.4-rc3.10-SNAPSHOT</nd4j.version>
         <dl4j.version>0.4-rc3.10-SNAPSHOT</dl4j.version>
         <canova.version>0.0.0.16-SNAPSHOT</canova.version>
@@ -30,15 +31,23 @@
             <url>http://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
         </repository>
     </distributionManagement>
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.nd4j</groupId>
+                <artifactId>nd4j-native</artifactId>
+                <version>${nd4j.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.nd4j</groupId>
+                <artifactId>nd4j-cuda-7.5</artifactId>
+                <version>${nd4j.version}</version>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
 
     <dependencies>
-        <dependency>
-            <groupId>org.nd4j</groupId>
-            <artifactId>nd4j-native</artifactId>
-            <version>${nd4j.version}</version>
-            <!-- <scope>provided</scope> to reduce jar file size when not doing learning -->
-        </dependency>
         <dependency>
             <groupId>org.deeplearning4j</groupId>
             <artifactId>deeplearning4j-core</artifactId>
@@ -126,7 +135,10 @@
             <artifactId>args4j</artifactId>
             <version>2.32</version>
         </dependency>
-
+        <dependency>
+            <groupId>org.nd4j</groupId>
+            <artifactId>${nd4j.backend}</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
