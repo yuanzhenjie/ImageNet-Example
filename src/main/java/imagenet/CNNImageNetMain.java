@@ -137,6 +137,8 @@ public class CNNImageNetMain {
             case "SparkCluster":
                 new CNNImageNetSparkExample().initialize();
                 break;
+            default:
+                break;
         }
         System.out.println("****************Example finished********************");
     }
@@ -192,6 +194,8 @@ public class CNNImageNetMain {
                         paramPaths = NetSaverLoaderUtils.getStringParamPaths(outputPath, layerIdsVGG);
                         NetSaverLoaderUtils.loadParameters(model, layerIdsVGG, paramPaths);
                     }
+                    break;
+                default:
                     break;
             }
         }

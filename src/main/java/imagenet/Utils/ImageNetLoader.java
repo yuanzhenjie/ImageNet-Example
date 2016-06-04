@@ -69,6 +69,8 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
                 throw new NotImplementedException("Detection has not been setup yet");
             case "DET_VAL":
                 throw new NotImplementedException("Detection has not been setup yet");
+            default:
+                break;
         }
     }
 
@@ -112,6 +114,8 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
                 throw new NotImplementedException("Detection has not been setup yet");
             case "DET_VAL":
                 throw new NotImplementedException("Detection has not been setup yet");
+            default:
+                break;
         }
     }
 
