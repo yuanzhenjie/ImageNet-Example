@@ -11,9 +11,9 @@
 
     <properties>
         <nd4j.backend>nd4j-native</nd4j.backend>
-        <nd4j.version>0.4-rc3.10-SNAPSHOT</nd4j.version>
-        <dl4j.version>0.4-rc3.10-SNAPSHOT</dl4j.version>
-        <canova.version>0.0.0.16-SNAPSHOT</canova.version>
+        <nd4j.version>0.4-rc3.11-SNAPSHOT</nd4j.version>
+        <dl4j.version>0.4-rc3.11-SNAPSHOT</dl4j.version>
+        <canova.version>0.0.0.17-SNAPSHOT</canova.version>
         <spark.version>1.6.0</spark.version>
         <scala.binary.version>2.10</scala.binary.version>
         <junit.version>4.12</junit.version>
