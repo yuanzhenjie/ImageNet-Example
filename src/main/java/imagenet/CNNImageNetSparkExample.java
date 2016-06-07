@@ -12,11 +12,11 @@ import org.canova.spark.functions.data.RecordReaderBytesFunction;
 import org.deeplearning4j.eval.Evaluation;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.spark.canova.CanovaDataSetFunction;
-import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.nd4j.linalg.dataset.DataSet;
 import org.apache.hadoop.io.Text;
+import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer;
 
 import java.util.Collection;
 import java.util.List;

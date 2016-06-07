@@ -86,12 +86,12 @@
         </dependency>
         <!-- Spark -->
         <dependency>
+            <artifactId>dl4j-spark_${scala.binary.version}</artifactId>
             <groupId>org.deeplearning4j</groupId>
-            <artifactId>dl4j-spark</artifactId>
             <version>${dl4j.version}</version>
         </dependency>
         <dependency>
-            <artifactId>canova-spark</artifactId>
+            <artifactId>canova-spark_${scala.binary.version}</artifactId>
             <groupId>org.nd4j</groupId>
             <version>${canova.version}</version>
         </dependency>
