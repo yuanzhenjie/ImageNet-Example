@@ -54,11 +54,6 @@
             <version>${dl4j.version}</version>
         </dependency>
         <dependency>
-            <artifactId>canova-nd4j-image</artifactId>
-            <groupId>org.nd4j</groupId>
-            <version>${canova.version}</version>
-        </dependency>
-        <dependency>
             <groupId>com.google.guava</groupId>
             <artifactId>guava</artifactId>
             <version>19.0</version>
@@ -72,6 +67,11 @@
             <groupId>com.fasterxml.jackson.dataformat</groupId>
             <artifactId>jackson-dataformat-yaml</artifactId>
             <version>2.5.1</version>
+        </dependency>
+        <dependency>
+            <artifactId>canova-nd4j-image</artifactId>
+            <groupId>org.nd4j</groupId>
+            <version>${canova.version}</version>
         </dependency>
         <!-- Spark -->
         <dependency>
