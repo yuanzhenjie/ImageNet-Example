@@ -12,11 +12,12 @@ import org.canova.spark.functions.data.RecordReaderBytesFunction;
 import org.deeplearning4j.eval.Evaluation;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.spark.canova.CanovaDataSetFunction;
+import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer;
+import org.deeplearning4j.spark.impl.paramavg.ParameterAveragingTrainingMaster;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.nd4j.linalg.dataset.DataSet;
 import org.apache.hadoop.io.Text;
-import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer;
 
 import java.util.Collection;
 import java.util.List;
@@ -45,11 +46,10 @@ public class CNNImageNetSparkExample extends CNNImageNetMain{
         setListeners();
 
         // Train
-        SparkDl4jMultiLayer sparkModelCopy = new SparkDl4jMultiLayer(sc,
-                trainModel(new SparkDl4jMultiLayer(sc, model), trainData));
+        SparkDl4jMultiLayer sparkNetwork = trainModel(new SparkDl4jMultiLayer(sc, model, new ParameterAveragingTrainingMaster(true,Runtime.getRuntime().availableProcessors(),5,1,0)), trainData);
 
         // Eval
-        evaluatePerformance(sparkModelCopy, testData);
+        evaluatePerformance(sparkNetwork, testData);
 
         // Save
         saveAndPrintResults();
@@ -66,7 +66,6 @@ public class CNNImageNetSparkExample extends CNNImageNetMain{
 //        conf.set("spak.executor.memory", "4g");
 //        conf.set("spak.driver.memory", "4g");
 //        conf.set("spark.driver.maxResultSize", "1g");
-        conf.set(SparkDl4jMultiLayer.AVERAGE_EACH_ITERATION, String.valueOf(true));
 //        conf.set(SparkDl4jMultiLayer.ACCUM_GRADIENT, String.valueOf(true));
         return new JavaSparkContext(conf);
     }
@@ -115,20 +114,20 @@ public class CNNImageNetSparkExample extends CNNImageNetMain{
         return data;
     }
 
-    private MultiLayerNetwork trainModel(SparkDl4jMultiLayer model, JavaRDD<DataSet> data){
+    private SparkDl4jMultiLayer trainModel(SparkDl4jMultiLayer model, JavaRDD<DataSet> data){
         System.out.println("Train model...");
         startTime = System.currentTimeMillis();
-        model.fitDataSet(data, batchSize, totalTrainNumExamples, numBatches);
+        model.fit(data);
         endTime = System.currentTimeMillis();
         trainTime = (int) (endTime - startTime) / 60000;
-        return model.getNetwork().clone();
+        return model;
 
     }
 
     private void evaluatePerformance(SparkDl4jMultiLayer model, JavaRDD<DataSet> testData) {
         System.out.println("Eval model...");
         startTime = System.currentTimeMillis();
-        Evaluation evalActual = model.evaluate(testData, labels);
+        Evaluation evalActual = model.evaluate(testData);
         System.out.println(evalActual.stats());
         endTime = System.currentTimeMillis();
         testTime = (int) (endTime - startTime) / 60000;

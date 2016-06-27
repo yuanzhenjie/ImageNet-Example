@@ -21,6 +21,7 @@ import java.util.Iterator;
  * Thus this is left more for reference.
  */
 
+@Deprecated
 public class ImageTransformUtils {
     private static final Logger log = LoggerFactory.getLogger(ImageTransformUtils.class);
     protected int channelType = BufferedImage.TYPE_INT_RGB;

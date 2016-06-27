@@ -88,7 +88,7 @@ public class CNNImageNetMain {
     protected static final int WIDTH = 224;
     protected static final int CHANNELS = 3;
     protected static final int outputNum = 1860;
-    protected int seed = 123;
+    protected int seed = 42;
     protected int listenerFreq = 1;
     protected int totalTrainNumExamples = batchSize * numBatches;
     protected int totalTestNumExamples = testBatchSize * numTestBatches;
@@ -97,9 +97,9 @@ public class CNNImageNetMain {
     protected String basePath = ImageNetLoader.BASE_DIR;
     protected String trainPath = FilenameUtils.concat(basePath, trainFolder);
     protected String testPath = FilenameUtils.concat(basePath, testFolder);
+
 //        String trainPath = FilenameUtils.concat(new ClassPathResource("train").getFile().getAbsolutePath(), "*");
 //        String testPath = FilenameUtils.concat(new ClassPathResource("test").getFile().getAbsolutePath(), "*");
-
 //    protected String trainPath = FilenameUtils.concat(System.getProperty("user.dir"), "src/main/resources/train/*");
 //    protected String testPath = FilenameUtils.concat(System.getProperty("user.dir"), "src/main/resources/" + testFolder + "/*");
 
@@ -109,11 +109,10 @@ public class CNNImageNetMain {
     protected String confPath = this.toString() + "conf.yaml";
     protected String paramPath = this.toString() + "param.bin";
     protected Map<String, String> paramPaths = new HashMap<>();
+    protected String[] layerNames; // Names of layers to store parameters
+    protected String rootParamPath;
 
     protected MultiLayerNetwork model = null;
-
-    protected List<String> labels = new ImageNetLoader().getLabels(); // TODO this is hacky need a better solution
-    protected String[] layerIdsVGG = {"cnn1", "cnn2", "cnn3", "cnn4", "ffn1", "ffn2", "output"};
 
     public void run(String[] args) throws Exception {
         Nd4j.dtype = DataBuffer.Type.FLOAT;
@@ -143,35 +142,7 @@ public class CNNImageNetMain {
         System.out.println("****************Example finished********************");
     }
 
-
-    private void getRAMNeeds() {
-        // Prints memory usage. Used if checking bandwidth on machines.
-        List memBeans = ManagementFactory.getMemoryPoolMXBeans();
-        for (Iterator i = memBeans.iterator(); i.hasNext(); ) {
-
-            MemoryPoolMXBean mpool = (MemoryPoolMXBean) i.next();
-            MemoryUsage usage = mpool.getUsage();
-
-            String name = mpool.getName();
-            float init = usage.getInit() / 1000;
-            float used = usage.getUsed() / 1000;
-            float committed = usage.getCommitted() / 1000;
-            float max = usage.getMax() / 1000;
-            float pctUsed = (used / max) * 100;
-            float pctCommitted = (committed / max) * 100;
-            System.out.println("Memory " + name + " info: " + pctUsed + " " + pctCommitted);
-
-            if (mpool.getType().equals(MemoryType.HEAP)) {
-                System.out.println("RAM used: " + mpool.getCollectionUsage().toString());
-            }
-        }
-    }
-
     protected void buildModel() {
-// TODO remove potentially - using names for layer connection vs number - reference for now
-//        int[] layerIdsA = {0,1,3,4,13,14,15}; // specific to VGGA
-//        int[] layerIdsD = {0,1,3,4,18,19,20}; // specific to VGGD
-
         System.out.println("Build model....");
         if (confName != null && paramName != null) {
             String confPath = FilenameUtils.concat(outputPath, confName + "conf.yaml");
@@ -189,11 +160,7 @@ public class CNNImageNetMain {
                     model = new VGGNetA(HEIGHT, WIDTH, CHANNELS, outputNum, seed, iterations).init();
                     break;
                 case "VGGNetD":
-                    model = new VGGNetD(HEIGHT, WIDTH, CHANNELS, outputNum, seed, iterations).init();
-                    if (paramName != null) {
-                        paramPaths = NetSaverLoaderUtils.getStringParamPaths(outputPath, layerIdsVGG);
-                        NetSaverLoaderUtils.loadParameters(model, layerIdsVGG, paramPaths);
-                    }
+                    model = new VGGNetD(HEIGHT, WIDTH, CHANNELS, outputNum, seed, iterations, rootParamPath).init();
                     break;
                 default:
                     break;
@@ -225,7 +192,7 @@ public class CNNImageNetMain {
         System.out.println("Total evaluation runtime: " + testTime + " minutes");
         System.out.println("****************************************************");
         if (saveModel) NetSaverLoaderUtils.saveNetworkAndParameters(model, outputPath.toString());
-        if (saveParams) NetSaverLoaderUtils.saveParameters(model, layerIdsVGG, paramPaths);
+        if (saveParams) NetSaverLoaderUtils.saveParameters(model, layerNames, paramPaths);
 
 
     }

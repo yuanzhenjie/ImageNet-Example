@@ -2,13 +2,14 @@ package imagenet;
 
 
 import imagenet.Utils.ImageNetDataSetIterator;
-import org.deeplearning4j.datasets.iterator.DataSetIterator;
+
 import org.deeplearning4j.datasets.iterator.MultipleEpochsIterator;
 import org.deeplearning4j.eval.Evaluation;
 import org.deeplearning4j.gradientcheck.GradientCheckUtil;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.dataset.DataSet;
+import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,12 +30,13 @@ public class CNNImageNetExample extends CNNImageNetMain{
     public void initialize() throws Exception {
         boolean gradientCheck = false;
 
-        Map<String, String> paramPaths = null;
+        Map<String, String> paramPaths;
+        int asynQues = 1;
 
         // Load data
-        MultipleEpochsIterator trainIter = loadData(batchSize, totalTrainNumExamples, "CLS_TRAIN");
+        MultipleEpochsIterator trainIter = loadData(batchSize, totalTrainNumExamples, "CLS_TRAIN", asynQues);
         numEpochs = 1;
-        MultipleEpochsIterator testIter = loadData(testBatchSize, totalTestNumExamples, "CLS_VAL");
+        MultipleEpochsIterator testIter = loadData(testBatchSize, totalTestNumExamples, "CLS_VAL", asynQues);
 
         // Build
         buildModel();
@@ -54,18 +56,16 @@ public class CNNImageNetExample extends CNNImageNetMain{
 
     }
 
-    private MultipleEpochsIterator loadData(int batchSize, int totalNumExamples, String mode){
+    private MultipleEpochsIterator loadData(int batchSize, int totalNumExamples, String mode, int asyncQues){
         System.out.println("Load data....");
-        //// asyncIter = new AsyncDataSetIterator(dataIter, 1); TODO doesn't have next(num)
 
         // TODO incorporate some formate of below code when using full validation set to pass valLabelMap through iterator
 //                RecordReader testRecordReader = new ImageNetRecordReader(numColumns, numRows, nChannels, true, labelPath, valLabelMap); // use when pulling from main val for all labels
 //                testRecordReader.initialize(new LimitFileSplit(new File(testData), allForms, totalNumExamples, numCategories, Pattern.quote("_"), 0, new Random(123)));
 
-        //TODO need dataIter that loops through set number of examples like SamplingIter but takes iter vs dataset
         return new MultipleEpochsIterator(numEpochs,
                 new ImageNetDataSetIterator(batchSize, totalNumExamples,
-                        new int[] {HEIGHT, WIDTH, CHANNELS}, numCategories, outputNum, mode));
+                        new int[] {HEIGHT, WIDTH, CHANNELS}, numCategories, mode), 5);
     }
 
 
@@ -81,8 +81,7 @@ public class CNNImageNetExample extends CNNImageNetMain{
         System.out.println("Evaluate model....");
 
         startTime = System.currentTimeMillis();
-        //TODO setup iterator to randomize and pass in iterator vs doing a loop here
-        Evaluation eval = model.evaluate(iter, labels);
+        Evaluation eval = model.evaluate(iter);
         endTime = System.currentTimeMillis();
         System.out.println(eval.stats(true));
         System.out.println("****************************************************");
