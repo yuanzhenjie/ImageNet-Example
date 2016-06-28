@@ -44,10 +44,11 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
     public final static String BASE_DIR = FilenameUtils.concat(System.getProperty("user.dir"), "src/main/resources/");
     public final static String LOCAL_TRAIN_DIR = "train";
     public final static String LOCAL_VAL_DIR = "test";
-    public final static String LABEL_FILENAME = "cls-loc-labels.txt";
-    public final static String VAL_MAP_FILENAME = "cls-loc-val-map.txt";
+    public final static String CLS_TRAIN_ID_TO_LABELS = "cls-loc-labels.txt";
+    public final static String CLS_VAL_ID_TO_LABELS = "cls-loc-val-map.txt";
     public String urlTrainFile = "image_train_urls.txt";
     public String urlValFile = "image_test_urls.txt";
+    protected String labelFilePath;
 
     protected List<String> labels = new ArrayList<>();
     protected Map<String,String> labelIdMap = new LinkedHashMap<>();
@@ -67,33 +68,35 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
     protected double splitTrainTest;
     protected Random rng;
 
-    protected String mode; // CLS_Train, CLS_VAL, CLS_TEST, DET_TRAIN, DET_VAL, DET_TEST
+    protected DataMode dataMode; // CLS_Train, CLS_VAL, CLS_TEST, DET_TRAIN, DET_VAL, DET_TEST
     protected final static String REGEX_PATTERN = Pattern.quote("_");
     public final static PathLabelGenerator LABEL_PATTERN = new PatternPathLabelGenerator(REGEX_PATTERN);
     protected RecordReader recordReader;
 
-    public ImageNetLoader(int batchSize, int numExamples, int numLabels, @Null PathLabelGenerator labelGenerator, @Null double splitTrainTest, @Null Random rng, String mode, File localDir){
+    public ImageNetLoader(int batchSize, int numExamples, int numLabels, @Null PathLabelGenerator labelGenerator, DataMode dataMode, @Null double splitTrainTest, @Null Random rng, @Null File localDir){
         this.batchSize = batchSize;
         this.numExamples = numExamples;
         this.numLabels = numLabels;
         this.labelGenerator = labelGenerator == null? LABEL_PATTERN: labelGenerator;
+        this.labelFilePath = (dataMode == DataMode.CLS_VAL || dataMode == DataMode.DET_VAL)? CLS_VAL_ID_TO_LABELS: CLS_TRAIN_ID_TO_LABELS;
         this.splitTrainTest = Double.isNaN(splitTrainTest)? 1: splitTrainTest;
         this.rng = rng == null? new Random(System.currentTimeMillis()): rng;
-        this.mode = mode;
-        switch (mode) {
-            case "CLS_TRAIN":
+        this.dataMode = dataMode;
+        switch (dataMode) {
+            case CLS_TRAIN:
                 this.fullDir = localDir == null? fullTrainDir: localDir;
                 this.urlList = sampleURLTrainList;
                 load();
                 break;
-            case "CLS_VAL":
+            case CLS_TEST:
                 this.fullDir =  localDir == null? fullTestDir: localDir;
                 this.urlList = sampleURLTestList;
                 load();
                 break;
-            case "DET_TRAIN":
-                throw new NotImplementedException("Detection has not been setup yet");
-            case "DET_VAL":
+            case CLS_VAL:
+            case DET_TRAIN:
+            case DET_VAL:
+            case DET_TEST:
                 throw new NotImplementedException("Detection has not been setup yet");
             default:
                 break;
@@ -128,9 +131,9 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
     }
 
     // TODO finish setting up the following and passing into the record reader...
-    private void defineLabels() {
+    private void defineLabels(File labelFilePath) {
         try {
-            BufferedReader br = new BufferedReader(new FileReader(new File(BASE_DIR, LABEL_FILENAME)));
+            BufferedReader br = new BufferedReader(new FileReader(labelFilePath));
             String line;
 
             while ((line = br.readLine()) != null) {
@@ -144,7 +147,7 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
     }
 
     public void load()  {
-        defineLabels();
+        defineLabels(new File(BASE_DIR, labelFilePath));
         // Downloading a sample set of data if not available
         if (!fullDir.exists()) {
             fullDir.mkdir();
@@ -176,19 +179,19 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
     }
 
     public RecordReader getRecordReader() {
-        return getRecordReader(new int[]{ HEIGHT, WIDTH, CHANNELS}, null, 255, true);
+        return getRecordReader(new int[]{ HEIGHT, WIDTH, CHANNELS}, null, 255);
     }
 
     public RecordReader getRecordReader(int[] imgDim) {
-        return getRecordReader(imgDim, null, 255, true);
+        return getRecordReader(imgDim, null, 255);
     }
 
-    public RecordReader getRecordReader(int[]imgDim, ImageTransform imageTransform, int normalizeValue, boolean train) {
+    public RecordReader getRecordReader(int[]imgDim, ImageTransform imageTransform, int normalizeValue) {
         load();
-        recordReader = new ImageNetRecordReader(imgDim, labelGenerator, imageTransform, normalizeValue);
+        recordReader = new ImageNetRecordReader(imgDim[0], imgDim[1], imgDim[2], labelGenerator, imageTransform, normalizeValue, dataMode);
 
         try {
-            InputSplit data = train? inputSplit[0]: inputSplit[1];
+            InputSplit data = (dataMode == DataMode.CLS_TRAIN || dataMode == DataMode.DET_TRAIN)? inputSplit[0]: inputSplit[1];
             recordReader.initialize(data);
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();
@@ -207,6 +210,11 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
 
     public RecordReader getTest() throws Exception{
         recordReader.initialize(inputSplit[1]);
+        return recordReader;
+    }
+
+    public RecordReader getCrossVal() throws Exception{
+        recordReader.initialize(inputSplit[2]);
         return recordReader;
     }
 

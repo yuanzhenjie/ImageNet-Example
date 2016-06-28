@@ -27,15 +27,13 @@ public class ImageNetRecordReader extends BaseImageRecordReader {
 
     protected static Logger log = LoggerFactory.getLogger(ImageNetRecordReader.class);
     protected Map<String,String> labelFileIdMap = new LinkedHashMap<>();
-    protected String labelPath;
-    protected String fileNameMapPath = null; // use when the WNID is not in the filename (e.g. val labels)
-    protected boolean eval = false; // use to load label ids for validation data set
+    protected String fileNameMapPath; // use when the WNID is not in the filename (e.g. val labels)
+    protected DataMode dataMode = DataMode.CLS_TRAIN; // use to load label ids for validation data set
 
-    public ImageNetRecordReader(int[] imgDim, PathLabelGenerator labelGenerator, ImageTransform imgTransform, double normalizeValue) {
-        this.height = imgDim[0];
-        this.width = imgDim[1];
-        this.channels = imgDim[2];
-        this.eval = true;
+    public ImageNetRecordReader(int height, int width, int channels, PathLabelGenerator labelGenerator, ImageTransform imgTransform, double normalizeValue, DataMode dataMode) {
+        super(height, width, channels, labelGenerator, imgTransform, normalizeValue);
+        this.dataMode = dataMode;
+        this.imgNetLabelSetup();
     }
 
     private Map<String, String> defineLabels(String path) throws IOException {
@@ -51,52 +49,24 @@ public class ImageNetRecordReader extends BaseImageRecordReader {
         return tmpMap;
     }
 
-    private void imgNetLabelSetup() throws IOException {
+    private void imgNetLabelSetup() {
         // creates hashmap with WNID (synset id) as key and first descriptive word in list as the string name
-        if (labelPath != null && labelFileIdMap.isEmpty()) {
-            labelFileIdMap = defineLabels(labelPath);
+        if (labelFileIdMap.isEmpty()) {
+            try {
+                labelFileIdMap = defineLabels(ImageNetLoader.BASE_DIR + ImageNetLoader.CLS_TRAIN_ID_TO_LABELS);
+            } catch (IOException e){
+                e.printStackTrace();
+            }
             labels = new ArrayList<>(labelFileIdMap.values());
         }
-        // creates hasmap with filename as key and WNID(synset id) as value
-        if (fileNameMapPath != null && fileNameMap.isEmpty()) {
-            fileNameMap = defineLabels(fileNameMapPath);
-        }
-    }
-
-    @Override
-    public void initialize(InputSplit split) throws IOException {
-        if (imageLoader == null) {
-            imageLoader = new NativeImageLoader(height, width, channels, cropImage);
-        }
-        inputSplit = split;
-        imgNetLabelSetup();
-
-        if(split instanceof FileSplit) {
-            URI[] locations = split.locations();
-            if(locations != null && locations.length >= 1) {
-                if(locations.length > 1) {
-                    List<File> allFiles = new ArrayList<>();
-                    for(URI location : locations) {
-                        File iter = new File(location);
-                        if(!iter.isDirectory() && containsFormat(iter.getAbsolutePath()))
-                            allFiles.add(iter);
-                    }
-                    iter =  allFiles.listIterator();
-                }
-                else {
-                    File curr = new File(locations[0]);
-                    if(!curr.exists())
-                        throw new IllegalArgumentException("Path " + curr.getAbsolutePath() + " does not exist!");
-                    if(curr.isDirectory())
-                        iter = FileUtils.iterateFiles(curr, null, true);
-                    else
-                        iter =  Collections.singletonList(curr).listIterator();
-                }
+        // creates hasmap with filename as key and WNID(synset id) as value when using val files
+        if((dataMode == DataMode.CLS_VAL || dataMode == DataMode.DET_VAL) && fileNameMap.isEmpty()) {
+            try {
+                fileNameMap = defineLabels(ImageNetLoader.BASE_DIR + ImageNetLoader.CLS_VAL_ID_TO_LABELS);
+            }  catch (IOException e){
+                e.printStackTrace();
             }
-        } else {
-            throw new UnsupportedClassVersionError("Split needs to be an instance of FileSplit for this record reader.");
         }
-
     }
 
     @Override
@@ -142,10 +112,11 @@ public class ImageNetRecordReader extends BaseImageRecordReader {
     private Collection<Writable> load(INDArray image, String filename) throws IOException {
         int labelId = -1;
         Collection<Writable> ret = RecordConverter.toRecord(image);
-        if(appendLabel && fileNameMapPath == null) {
-            String WNID = FilenameUtils.getBaseName(filename).split(pattern)[patternPosition];
-            labelId = labels.indexOf(labelFileIdMap.get(WNID));
-        } else if (eval) {
+        if (dataMode != DataMode.CLS_VAL || dataMode != DataMode.DET_VAL) {
+//            String WNID = FilenameUtils.getBaseName(filename).split(pattern)[patternPosition];
+            Writable WNID = labelGenerator.getLabelForPath(filename);
+            labelId = labels.indexOf(labelFileIdMap.get(WNID.toString()));
+        } else {
             String fileName = FilenameUtils.getName(filename); // currently expects file extension
             labelId = labels.indexOf(labelFileIdMap.get(fileNameMap.get(fileName)));
         }

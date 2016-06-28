@@ -1,54 +1,60 @@
 package imagenet;
 
 
+import imagenet.Utils.DataMode;
 import imagenet.Utils.ImageNetDataSetIterator;
 
+
+import org.canova.image.transform.ImageTransform;
+import org.canova.image.transform.FlipImageTransform;
+import org.canova.image.transform.WarpImageTransform;
 import org.deeplearning4j.datasets.iterator.MultipleEpochsIterator;
 import org.deeplearning4j.eval.Evaluation;
 import org.deeplearning4j.gradientcheck.GradientCheckUtil;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
-import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.dataset.DataSet;
 import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
 import java.util.*;
 
 
 /**
  * Standard configuration used to run ImageNet on a single machine.
  */
-public class CNNImageNetExample extends CNNImageNetMain{
+public class ImageNetStandardExample extends ImageNetMain {
 
-    private static final Logger log = LoggerFactory.getLogger(CNNImageNetExample.class);
+    private static final Logger log = LoggerFactory.getLogger(ImageNetStandardExample.class);
 
-    public CNNImageNetExample() {
+    public ImageNetStandardExample() {
     }
 
     public void initialize() throws Exception {
         boolean gradientCheck = false;
 
-        Map<String, String> paramPaths;
-        int asynQues = 1;
-
-        // Load data
-        MultipleEpochsIterator trainIter = loadData(batchSize, totalTrainNumExamples, "CLS_TRAIN", asynQues);
-        numEpochs = 1;
-        MultipleEpochsIterator testIter = loadData(testBatchSize, totalTestNumExamples, "CLS_VAL", asynQues);
-
         // Build
         buildModel();
         setListeners();
 
+        // Train
+        MultipleEpochsIterator trainIter = null;
+        ImageTransform flipTransform = new FlipImageTransform(new Random(42));
+        ImageTransform warpTransform = new WarpImageTransform(new Random(42), 42);
+        List<ImageTransform> transforms = Arrays.asList(new ImageTransform[] {null, flipTransform, warpTransform});
+
+        for(ImageTransform transform: transforms) {
+            log.info("Training with " + (transform == null? "no": transform.toString()) + " transform");
+            trainIter = loadData(numTrainExamples, transform, DataMode.CLS_TRAIN);
+            trainModel(trainIter);
+        }
+
         // Gradient Check
         if (gradientCheck) gradientCheck(trainIter, model);
 
-        // Train
-        trainModel(trainIter);
-
         // Evaluation
+        numEpochs = 1;
+        MultipleEpochsIterator testIter = loadData(numTestExamples, null, DataMode.CLS_TEST);
         evaluatePerformance(testIter);
 
         // Save
@@ -56,7 +62,7 @@ public class CNNImageNetExample extends CNNImageNetMain{
 
     }
 
-    private MultipleEpochsIterator loadData(int batchSize, int totalNumExamples, String mode, int asyncQues){
+    private MultipleEpochsIterator loadData(int numExamples, ImageTransform transform, DataMode dataMode){
         System.out.println("Load data....");
 
         // TODO incorporate some formate of below code when using full validation set to pass valLabelMap through iterator
@@ -64,8 +70,8 @@ public class CNNImageNetExample extends CNNImageNetMain{
 //                testRecordReader.initialize(new LimitFileSplit(new File(testData), allForms, totalNumExamples, numCategories, Pattern.quote("_"), 0, new Random(123)));
 
         return new MultipleEpochsIterator(numEpochs,
-                new ImageNetDataSetIterator(batchSize, totalNumExamples,
-                        new int[] {HEIGHT, WIDTH, CHANNELS}, numCategories, mode), 5);
+                new ImageNetDataSetIterator(batchSize, numExamples,
+                        new int[] {HEIGHT, WIDTH, CHANNELS}, numLabels, dataMode, splitTrainTest, transform, normalizeValue, rng), asynQues);
     }
 
 

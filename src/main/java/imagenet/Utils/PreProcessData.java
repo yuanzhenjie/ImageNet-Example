@@ -14,7 +14,6 @@ import org.apache.spark.api.java.JavaSparkContext;
 
 import org.apache.spark.input.PortableDataStream;
 import org.canova.api.writable.Writable;
-import org.canova.image.recordreader.ImageNetRecordReader;
 import org.canova.spark.functions.data.FilesAsBytesFunction;
 import org.canova.spark.functions.data.RecordReaderBytesFunction;
 
@@ -104,10 +103,10 @@ public class PreProcessData {
 //    }
 
     // TODO remove - temp to test results
-    public void checkFile(String inputPath){
+    public void checkFile(String inputPath, DataMode dataMode){
         JavaPairRDD<Text, BytesWritable> data = sc.sequenceFile(inputPath, Text.class, BytesWritable.class);
         RecordReaderBytesFunction recordReaderFunc = new RecordReaderBytesFunction(
-                new ImageNetRecordReader(40, 40, 3, FilenameUtils.concat(ImageNetLoader.BASE_DIR, ImageNetLoader.LABEL_FILENAME), true, Pattern.quote("_")));
+                new ImageNetRecordReader(40, 40, 3, null, null, 255, dataMode));
         JavaRDD<Collection<Writable>> rdd = data.map(recordReaderFunc);
         JavaRDD<DataSet> ds = rdd.map(new CanovaDataSetFunction(-1, 1860, false));
     }

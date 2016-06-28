@@ -1,5 +1,7 @@
 package imagenet;
 
+import imagenet.Utils.DataMode;
+import imagenet.Utils.ImageNetRecordReader;
 import imagenet.Utils.PreProcessData;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.spark.SparkConf;
@@ -7,10 +9,11 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.canova.api.writable.Writable;
-import org.canova.image.recordreader.ImageNetRecordReader;
+import org.canova.image.transform.FlipImageTransform;
+import org.canova.image.transform.ImageTransform;
+import org.canova.image.transform.WarpImageTransform;
 import org.canova.spark.functions.data.RecordReaderBytesFunction;
 import org.deeplearning4j.eval.Evaluation;
-import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.spark.canova.CanovaDataSetFunction;
 import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer;
 import org.deeplearning4j.spark.impl.paramavg.ParameterAveragingTrainingMaster;
@@ -19,36 +22,37 @@ import org.slf4j.LoggerFactory;
 import org.nd4j.linalg.dataset.DataSet;
 import org.apache.hadoop.io.Text;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
-import java.util.regex.Pattern;
+import java.util.Random;
 
 
 /**
  * Spark configuration to run ImageNet. The version argument from CNNImageNetMain sets whether it will run
  * SparkStandalone on just a local machine or SparkCluster on a cluster with master and workers.
  */
-public class CNNImageNetSparkExample extends CNNImageNetMain{
-    private static final Logger log = LoggerFactory.getLogger(CNNImageNetSparkExample.class);
+public class ImageNetSparkExample extends ImageNetMain {
+    private static final Logger log = LoggerFactory.getLogger(ImageNetSparkExample.class);
 
 
     public void initialize() throws Exception{
         // Spark context
         JavaSparkContext sc = (version == "SparkStandAlone")? setupLocalSpark(): setupClusterSpark();
 
-        // Load data
+        // Load data and train
         String seqOutputPath = null;
-        JavaRDD<DataSet> trainData = loadData(sc, trainPath, seqOutputPath, totalTrainNumExamples, false);
-        JavaRDD<DataSet> testData = loadData(sc, testPath, seqOutputPath, totalTestNumExamples, false);
-
-        // Build
-        buildModel();
-        setListeners();
-
-        // Train
-        SparkDl4jMultiLayer sparkNetwork = trainModel(new SparkDl4jMultiLayer(sc, model, new ParameterAveragingTrainingMaster(true,Runtime.getRuntime().availableProcessors(),5,1,0)), trainData);
-
+        SparkDl4jMultiLayer sparkNetwork = null;
+        JavaRDD<DataSet> trainData = null;
+        ImageTransform flipTransform = new FlipImageTransform(new Random(42));
+        ImageTransform warpTransform = new WarpImageTransform(new Random(42), 42);
+        List<ImageTransform> transforms = Arrays.asList(new ImageTransform[] {null, flipTransform, warpTransform});
+        for(ImageTransform transform: transforms) {
+            trainData = loadData(sc, trainPath, seqOutputPath, numTrainExamples, false, transform, DataMode.CLS_TRAIN);
+            sparkNetwork = trainModel(new SparkDl4jMultiLayer(sc, model, new ParameterAveragingTrainingMaster(true, Runtime.getRuntime().availableProcessors(), 5, 1, 0)), trainData);
+        }
         // Eval
+        JavaRDD<DataSet> testData = loadData(sc, testPath, seqOutputPath, numTestExamples, false, null, DataMode.CLS_TEST);
         evaluatePerformance(sparkNetwork, testData);
 
         // Save
@@ -77,13 +81,11 @@ public class CNNImageNetSparkExample extends CNNImageNetMain{
         return new JavaSparkContext(conf);
     }
 
-    private JavaRDD<DataSet> loadData(JavaSparkContext sc, String inputPath, String seqOutputPath, int numberExamples, boolean save) {
+    private JavaRDD<DataSet> loadData(JavaSparkContext sc, String inputPath, String seqOutputPath, int numExamples, boolean save, ImageTransform transform, DataMode dataMode) {
         System.out.println("Load data...");
 
         JavaPairRDD<Text, BytesWritable> filesAsBytes;
         JavaRDD<DataSet> data;
-        String regexSplit = Pattern.quote("_");
-        boolean appendLabel = true;
 
         if(inputPath==null && seqOutputPath != null){
             filesAsBytes = sc.sequenceFile(seqOutputPath, Text.class, BytesWritable.class);
@@ -96,16 +98,16 @@ public class CNNImageNetSparkExample extends CNNImageNetMain{
         }
 
         RecordReaderBytesFunction recordReaderFunc = new RecordReaderBytesFunction(
-                new ImageNetRecordReader(HEIGHT, WIDTH, CHANNELS, labelPath, appendLabel, regexSplit));
-        JavaRDD<Collection<Writable>> rdd = filesAsBytes.map(recordReaderFunc);
+                    new ImageNetRecordReader(HEIGHT, WIDTH, CHANNELS, null, transform, normalizeValue, dataMode));
 
+        JavaRDD<Collection<Writable>> rdd = filesAsBytes.map(recordReaderFunc);
         // Load all files in path
-        if(numberExamples==-1)
-            data = rdd.map(new CanovaDataSetFunction(-1, outputNum, false));
+        if(numExamples==-1)
+            data = rdd.map(new CanovaDataSetFunction(-1, numLabels, false));
         else {
             // Limit number examples loaded
-            JavaRDD<DataSet> dataRdd = rdd.map(new CanovaDataSetFunction(-1, outputNum, false));
-            List<DataSet> listData = dataRdd.take(numberExamples); // should have features and labels (1*1860) filled out
+            JavaRDD<DataSet> dataRdd = rdd.map(new CanovaDataSetFunction(-1, numLabels, false));
+            List<DataSet> listData = dataRdd.take(numExamples); // should have features and labels (1*1860) filled out
             data = sc.parallelize(listData);
         }
 
