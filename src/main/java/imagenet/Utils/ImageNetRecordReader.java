@@ -25,15 +25,13 @@ import java.util.*;
  */
 public class ImageNetRecordReader extends BaseImageRecordReader {
 
-    protected static Logger log = LoggerFactory.getLogger(ImageNetRecordReader.class);
     protected Map<String,String> labelFileIdMap = new LinkedHashMap<>();
-    protected String fileNameMapPath; // use when the WNID is not in the filename (e.g. val labels)
     protected DataMode dataMode = DataMode.CLS_TRAIN; // use to load label ids for validation data set
 
     public ImageNetRecordReader(int height, int width, int channels, PathLabelGenerator labelGenerator, ImageTransform imgTransform, double normalizeValue, DataMode dataMode) {
         super(height, width, channels, labelGenerator, imgTransform, normalizeValue);
         this.dataMode = dataMode;
-        this.imgNetLabelSetup();
+        this.labelSetup();
     }
 
     private Map<String, String> defineLabels(String path) throws IOException {
@@ -49,7 +47,7 @@ public class ImageNetRecordReader extends BaseImageRecordReader {
         return tmpMap;
     }
 
-    private void imgNetLabelSetup() {
+    private void labelSetup() {
         // creates hashmap with WNID (synset id) as key and first descriptive word in list as the string name
         if (labelFileIdMap.isEmpty()) {
             try {
@@ -79,7 +77,7 @@ public class ImageNetRecordReader extends BaseImageRecordReader {
 
             try {
                 invokeListeners(image);
-                return load(imageLoader.asRowVector(image), image.getName());
+                return setUpRecord(imageLoader.asMatrix(image), image.getName());
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -109,8 +107,8 @@ public class ImageNetRecordReader extends BaseImageRecordReader {
         throw new IllegalStateException("No more elements");
     }
 
-    private Collection<Writable> load(INDArray image, String filename) throws IOException {
-        int labelId = -1;
+    private Collection<Writable> setUpRecord(INDArray image, String filename) throws IOException {
+        int labelId;
         Collection<Writable> ret = RecordConverter.toRecord(image);
         if (dataMode != DataMode.CLS_VAL || dataMode != DataMode.DET_VAL) {
 //            String WNID = FilenameUtils.getBaseName(filename).split(pattern)[patternPosition];
@@ -130,7 +128,7 @@ public class ImageNetRecordReader extends BaseImageRecordReader {
     @Override
     public Collection<Writable> record(URI uri, DataInputStream dataInputStream ) throws IOException {
         invokeListeners(uri);
-        imgNetLabelSetup();
-        return load(imageLoader.asRowVector(dataInputStream), FilenameUtils.getName(uri.getPath()));
+        labelSetup();
+        return setUpRecord(imageLoader.asRowVector(dataInputStream), FilenameUtils.getName(uri.getPath()));
     }
 }

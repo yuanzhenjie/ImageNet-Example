@@ -31,7 +31,7 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
     public final static int NUM_CLS_TRAIN_IMAGES = 1281167;
     public final static int NUM_CLS_VAL_IMAGES = 50000;
     public final static int NUM_CLS_TEST_IMAGES = 100000;
-    public final static int NUM_CLS_LABELS = 1860; // 1000 main with 860 ancestors
+    public final static int NUM_CLS_LABELS = 1861; // 1000 main with 860 ancestors
 
     public final static int NUM_DET_TRAIN_IMAGES = 395918;
     public final static int NUM_DET_VAL_IMAGES = 20121;
