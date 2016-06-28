@@ -50,24 +50,8 @@
     <dependencies>
         <dependency>
             <groupId>org.deeplearning4j</groupId>
-            <artifactId>deeplearning4j-core</artifactId>
-            <version>${dl4j.version}</version>
-            <exclusions>
-                <exclusion>
-                    <artifactId>jackson-databind</artifactId>
-                    <groupId>com.fasterxml.jackson.core</groupId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <groupId>org.deeplearning4j</groupId>
             <artifactId>deeplearning4j-ui</artifactId>
             <version>${dl4j.version}</version>
-        </dependency>
-        <dependency>
-            <artifactId>canova-nd4j-image</artifactId>
-            <groupId>org.nd4j</groupId>
-            <version>${canova.version}</version>
         </dependency>
         <dependency>
             <groupId>com.google.guava</groupId>
@@ -84,17 +68,35 @@
             <artifactId>jackson-dataformat-yaml</artifactId>
             <version>2.5.1</version>
         </dependency>
+        <dependency>
+            <artifactId>canova-nd4j-image</artifactId>
+            <groupId>org.nd4j</groupId>
+            <version>${canova.version}</version>
+        </dependency>
         <!-- Spark -->
         <dependency>
             <artifactId>dl4j-spark_${scala.binary.version}</artifactId>
             <groupId>org.deeplearning4j</groupId>
             <version>${dl4j.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <artifactId>canova-spark_${scala.binary.version}</artifactId>
             <groupId>org.nd4j</groupId>
             <version>${canova.version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-log4j12</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
+
         <dependency>
             <groupId>org.apache.spark</groupId>
             <artifactId>spark-core_${scala.binary.version}</artifactId>
@@ -192,7 +194,7 @@
                                         implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                                 <transformer
                                         implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>imagenet.CNNImageNetSparkExample</mainClass>
+                                    <mainClass>imagenet.ImageNetSparkExample</mainClass>
                                 </transformer>
                             </transformers>
                         </configuration>

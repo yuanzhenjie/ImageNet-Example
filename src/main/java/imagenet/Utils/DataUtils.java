@@ -129,7 +129,7 @@ public class DataUtils {
 
             // TODO process images before grouping into sequence files
             ppd.setupSequnceFile(storePath + "/*", outputPath + "/" + count);
-            ppd.checkFile(outputPath + "/" + count);
+            ppd.checkFile(outputPath + "/" + count, DataMode.CLS_TRAIN);
             count++;
         }
         try {

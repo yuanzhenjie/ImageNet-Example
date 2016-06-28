@@ -10,6 +10,7 @@ import java.io.File;
  * Use this script to run ImageTransformUtils to transform images by cropping, resizing and setting channel.
  */
 
+@Deprecated
 public class TransformImages {
 
     public static void main(String[] args) {

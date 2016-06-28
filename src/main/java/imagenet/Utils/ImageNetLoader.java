@@ -2,15 +2,22 @@ package imagenet.Utils;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.NotImplementedException;
+import org.canova.api.io.filters.BalancedPathFilter;
+import org.canova.api.io.labels.PathLabelGenerator;
+import org.canova.api.io.labels.PatternPathLabelGenerator;
 import org.canova.api.records.reader.RecordReader;
 import org.canova.api.records.reader.impl.CSVRecordReader;
 import org.canova.api.split.FileSplit;
+import org.canova.api.split.InputSplit;
 import org.canova.api.split.LimitFileSplit;
 import org.canova.api.writable.Writable;
 import org.canova.image.loader.BaseImageLoader;
-import org.canova.image.recordreader.ImageNetRecordReader;
+import org.canova.image.recordreader.ImageRecordReader;
+import org.canova.image.transform.ImageTransform;
+import org.codehaus.jackson.map.deser.ValueInstantiators;
 import org.nd4j.linalg.api.ndarray.INDArray;
 
+import javax.validation.constraints.Null;
 import java.io.*;
 import java.util.*;
 import java.util.regex.Pattern;
@@ -35,48 +42,65 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
     public final static int CHANNELS = 3;
 
     public final static String BASE_DIR = FilenameUtils.concat(System.getProperty("user.dir"), "src/main/resources/");
-    public final static String LABEL_FILENAME = "cls-loc-labels.txt";
-    public final static String VAL_MAP_FILENAME = "cls-loc-val-map.txt";
+    public final static String LOCAL_TRAIN_DIR = "train";
+    public final static String LOCAL_VAL_DIR = "test";
+    public final static String CLS_TRAIN_ID_TO_LABELS = "cls-loc-labels.txt";
+    public final static String CLS_VAL_ID_TO_LABELS = "cls-loc-val-map.txt";
     public String urlTrainFile = "image_train_urls.txt";
     public String urlValFile = "image_test_urls.txt";
-    protected String regexPattern = Pattern.quote("_");
+    protected String labelFilePath;
 
     protected List<String> labels = new ArrayList<>();
     protected Map<String,String> labelIdMap = new LinkedHashMap<>();
 
-    public final static String LOCAL_TRAIN_DIR = "train";
     protected File fullTrainDir = new File(BASE_DIR, LOCAL_TRAIN_DIR);
-    public final static String LOCAL_VAL_DIR = "test";
     protected File fullTestDir = new File(BASE_DIR, LOCAL_VAL_DIR);
+    protected File sampleURLTrainList = new File(BASE_DIR, urlTrainFile);
+    protected File sampleURLTestList = new File(BASE_DIR, urlValFile);
 
     protected File fullDir;
+    protected File urlList;
+    protected InputSplit[] inputSplit;
+    protected int batchSize;
+    protected int numExamples;
+    protected int numLabels;
+    protected PathLabelGenerator labelGenerator;
+    protected double splitTrainTest;
+    protected Random rng;
 
-    protected int numExamples = NUM_CLS_TRAIN_IMAGES;
-    protected int numLabels = NUM_CLS_LABELS;
+    protected DataMode dataMode; // CLS_Train, CLS_VAL, CLS_TEST, DET_TRAIN, DET_VAL, DET_TEST
+    protected final static String REGEX_PATTERN = Pattern.quote("_");
+    public final static PathLabelGenerator LABEL_PATTERN = new PatternPathLabelGenerator(REGEX_PATTERN);
+    protected RecordReader recordReader;
 
-    protected String mode = "CLS_TRAIN"; // CLS_Train, CLS_VAL, CLS_TEST, DET_TRAIN, DET_VAL, DET_TEST
-
-    public ImageNetLoader(File localDir){
-        this.fullDir = localDir;
-        switch (mode) {
-            case "CLS_TRAIN":
-                load(fullDir, new File(BASE_DIR, urlTrainFile));
+    public ImageNetLoader(int batchSize, int numExamples, int numLabels, @Null PathLabelGenerator labelGenerator, DataMode dataMode, @Null double splitTrainTest, @Null Random rng, @Null File localDir){
+        this.batchSize = batchSize;
+        this.numExamples = numExamples;
+        this.numLabels = numLabels;
+        this.labelGenerator = labelGenerator == null? LABEL_PATTERN: labelGenerator;
+        this.labelFilePath = (dataMode == DataMode.CLS_VAL || dataMode == DataMode.DET_VAL)? CLS_VAL_ID_TO_LABELS: CLS_TRAIN_ID_TO_LABELS;
+        this.splitTrainTest = Double.isNaN(splitTrainTest)? 1: splitTrainTest;
+        this.rng = rng == null? new Random(System.currentTimeMillis()): rng;
+        this.dataMode = dataMode;
+        switch (dataMode) {
+            case CLS_TRAIN:
+                this.fullDir = localDir == null? fullTrainDir: localDir;
+                this.urlList = sampleURLTrainList;
+                load();
                 break;
-            case "CLS_VAL":
-                load(fullDir, new File(BASE_DIR, urlValFile));
+            case CLS_TEST:
+                this.fullDir =  localDir == null? fullTestDir: localDir;
+                this.urlList = sampleURLTestList;
+                load();
                 break;
-            case "DET_TRAIN":
-                throw new NotImplementedException("Detection has not been setup yet");
-            case "DET_VAL":
+            case CLS_VAL:
+            case DET_TRAIN:
+            case DET_VAL:
+            case DET_TEST:
                 throw new NotImplementedException("Detection has not been setup yet");
             default:
                 break;
         }
-    }
-
-    public ImageNetLoader() {
-        this.fullDir = fullTrainDir;
-        load(fullDir, new File(BASE_DIR, urlTrainFile));
     }
 
     @Override
@@ -99,26 +123,6 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
         return null;
     }
 
-    public ImageNetLoader(String mode) {
-        this.mode = mode;
-        switch (mode) {
-            case "CLS_TRAIN":
-                this.fullDir = fullTrainDir;
-                load(fullDir, new File(BASE_DIR, urlTrainFile));
-                break;
-            case "CLS_VAL":
-                this.fullDir = fullTestDir;
-                load(fullDir, new File(BASE_DIR, urlValFile));
-                break;
-            case "DET_TRAIN":
-                throw new NotImplementedException("Detection has not been setup yet");
-            case "DET_VAL":
-                throw new NotImplementedException("Detection has not been setup yet");
-            default:
-                break;
-        }
-    }
-
     public  Map<String, String> generateMaps(String filesFilename, String url) {
         Map<String, String> imgNetData = new HashMap<>();
         imgNetData.put("filesFilename", filesFilename);
@@ -127,9 +131,9 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
     }
 
     // TODO finish setting up the following and passing into the record reader...
-    private void defineLabels() {
+    private void defineLabels(File labelFilePath) {
         try {
-            BufferedReader br = new BufferedReader(new FileReader(new File(BASE_DIR, LABEL_FILENAME)));
+            BufferedReader br = new BufferedReader(new FileReader(labelFilePath));
             String line;
 
             while ((line = br.readLine()) != null) {
@@ -142,72 +146,54 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
         }
     }
 
-    public void load(File dir, File data)  {
-        defineLabels();
-        if (!dir.exists()) {
-            dir.mkdir();
-            log.info("Downloading {}...", FilenameUtils.getBaseName(dir.toString()));
+    public void load()  {
+        defineLabels(new File(BASE_DIR, labelFilePath));
+        // Downloading a sample set of data if not available
+        if (!fullDir.exists()) {
+            fullDir.mkdir();
+            log.info("Downloading {}...", FilenameUtils.getBaseName(fullDir.toString()));
             CSVRecordReader reader = new CSVRecordReader(7, ",");
-            try {
-                reader.initialize(new FileSplit(data));
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
             int count = 0;
-            while(reader.hasNext()) {
+            try {
+                reader.initialize(new FileSplit(urlList));
+            } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+
+        while(reader.hasNext()) {
                 Collection<Writable> val = reader.next();
                 Object url =  val.toArray()[1];
                 String fileName = val.toArray()[0] + "_" + count++ + ".jpg";
-                downloadAndUntar(generateMaps(fileName, url.toString()), dir);
+                downloadAndUntar(generateMaps(fileName, url.toString()), fullDir);
                 try{
-                    downloadAndUntar(generateMaps(fileName, url.toString()), dir);
+                    downloadAndUntar(generateMaps(fileName, url.toString()), fullDir);
                 }
                 catch(Exception e){
                     e.printStackTrace();
                 }
             }
         }
+        FileSplit fileSplit = new FileSplit(fullDir, ALLOWED_FORMATS, rng);
+        BalancedPathFilter pathFilter = new BalancedPathFilter(rng, ALLOWED_FORMATS,labelGenerator, numExamples, numLabels, 0, 0, null);
+        inputSplit = fileSplit.sample(pathFilter, numExamples*splitTrainTest, numExamples*(1-splitTrainTest));
     }
 
     public RecordReader getRecordReader() {
-        return getRecordReader(WIDTH, HEIGHT, CHANNELS, true, regexPattern);
+        return getRecordReader(new int[]{ HEIGHT, WIDTH, CHANNELS}, null, 255);
     }
 
-    public RecordReader getRecordReader(int width, int height, int channels) {
-        return getRecordReader(width, height, channels, true, regexPattern);
+    public RecordReader getRecordReader(int[] imgDim) {
+        return getRecordReader(imgDim, null, 255);
     }
 
-    public RecordReader getRecordReader(int numExamples) {
-        this.numExamples = numExamples;
-        return getRecordReader(WIDTH, HEIGHT, CHANNELS, true, regexPattern);
-    }
+    public RecordReader getRecordReader(int[]imgDim, ImageTransform imageTransform, int normalizeValue) {
+        load();
+        recordReader = new ImageNetRecordReader(imgDim[0], imgDim[1], imgDim[2], labelGenerator, imageTransform, normalizeValue, dataMode);
 
-    public RecordReader getRecordReader(int numExamples, int numCategories) {
-        this.numExamples = numExamples;
-        this.numLabels = numCategories;
-        return getRecordReader(WIDTH, HEIGHT, CHANNELS, true, regexPattern);
-    }
-
-    public RecordReader getRecordReader(int width, int height, int channels, int numExamples) {
-        this.numExamples = numExamples;
-        return getRecordReader(width, height, channels, true, regexPattern);
-    }
-
-    public RecordReader getRecordReader(int width, int height, int channels, int numExamples, int numCategories) {
-        this.numExamples = numExamples;
-        this.numLabels = numCategories;
-        return getRecordReader(width, height, channels, true, regexPattern);
-    }
-
-    public RecordReader getRecordReader(int width, int height, int channels, boolean appendLabel, String regexPattern) {
-        RecordReader recordReader = new ImageNetRecordReader(width, height, channels, FilenameUtils.concat(BASE_DIR, LABEL_FILENAME), appendLabel, regexPattern);
         try {
-            recordReader.initialize(new LimitFileSplit(fullDir, ALLOWED_FORMATS, numExamples, numLabels, regexPattern, 0, rng));
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e) {
+            InputSplit data = (dataMode == DataMode.CLS_TRAIN || dataMode == DataMode.DET_TRAIN)? inputSplit[0]: inputSplit[1];
+            recordReader.initialize(data);
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
         return recordReader;
@@ -215,6 +201,21 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
 
     public List<String> getLabels(){
         return labels;
+    }
+
+    public RecordReader getTrain() throws Exception{
+        recordReader.initialize(inputSplit[0]);
+        return recordReader;
+    }
+
+    public RecordReader getTest() throws Exception{
+        recordReader.initialize(inputSplit[1]);
+        return recordReader;
+    }
+
+    public RecordReader getCrossVal() throws Exception{
+        recordReader.initialize(inputSplit[2]);
+        return recordReader;
     }
 
 }
