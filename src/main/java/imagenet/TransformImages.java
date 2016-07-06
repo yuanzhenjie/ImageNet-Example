@@ -7,6 +7,7 @@ import org.apache.commons.io.FilenameUtils;
 import java.io.File;
 
 /**
+ * @deprecated
  * Use this script to run ImageTransformUtils to transform images by cropping, resizing and setting channel.
  */
 

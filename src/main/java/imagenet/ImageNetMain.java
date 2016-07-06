@@ -66,14 +66,14 @@ public class ImageNetMain {
     protected boolean saveParams = false;
 
     @Option(name="--confName",usage="Model configuration file name",aliases="-conf")
-    protected String confName = null;
+    protected String confName;
     @Option(name="--paramName",usage="Parameter file name",aliases="-param")
-    protected String paramName = null;
+    protected String paramName;
 
-    protected long startTime = 0;
-    protected long endTime = 0;
-    protected int trainTime = 0;
-    protected int testTime = 0;
+    protected long startTime;
+    protected long endTime;
+    protected int trainTime;
+    protected int testTime;
 
     protected static final int HEIGHT = ImageNetLoader.HEIGHT;
     protected static final int WIDTH = ImageNetLoader.WIDTH;

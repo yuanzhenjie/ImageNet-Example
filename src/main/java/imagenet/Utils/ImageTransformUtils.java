@@ -15,6 +15,7 @@ import java.io.IOException;
 import java.util.Iterator;
 
 /**
+ * @deprecated
  * Project class to transform images
  *
  * Includes cropping and resize. Note the functionality here has been transfered and covered in ImageReader.
