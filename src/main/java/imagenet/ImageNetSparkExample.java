@@ -1,8 +1,10 @@
 package imagenet;
 
 import imagenet.Utils.DataMode;
+import imagenet.Utils.ImageNetDataSetIterator;
 import imagenet.Utils.ImageNetRecordReader;
 import imagenet.Utils.PreProcessData;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.hadoop.io.BytesWritable;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -22,10 +24,7 @@ import org.slf4j.LoggerFactory;
 import org.nd4j.linalg.dataset.DataSet;
 import org.apache.hadoop.io.Text;
 
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
 
 /**
@@ -38,18 +37,27 @@ public class ImageNetSparkExample extends ImageNetMain {
 
     public void initialize() throws Exception{
         // Spark context
-        JavaSparkContext sc = (version == "SparkStandAlone")? setupLocalSpark(): setupClusterSpark();
+        JavaSparkContext sc = setupSpark();
 
         // Load data and train
-        String seqOutputPath = null;
+        String seqOutputPath = FilenameUtils.concat(PreProcessData.TEMP_DIR, "tmp");
         SparkDl4jMultiLayer sparkNetwork = null;
         JavaRDD<DataSet> trainData = null;
         ImageTransform flipTransform = new FlipImageTransform(new Random(42));
         ImageTransform warpTransform = new WarpImageTransform(new Random(42), 42);
         List<ImageTransform> transforms = Arrays.asList(new ImageTransform[] {null, flipTransform, warpTransform});
+
+        //Setup parameter averaging
+        ParameterAveragingTrainingMaster trainMaster = new ParameterAveragingTrainingMaster.Builder(batchSize)
+                .workerPrefetchNumBatches(0)
+                .saveUpdater(true)
+                .averagingFrequency(5)
+                .batchSizePerWorker(batchSize)
+                .build();
+
         for(ImageTransform transform: transforms) {
             trainData = loadData(sc, trainPath, seqOutputPath, numTrainExamples, false, transform, DataMode.CLS_TRAIN);
-            sparkNetwork = trainModel(new SparkDl4jMultiLayer(sc, model, new ParameterAveragingTrainingMaster(true, Runtime.getRuntime().availableProcessors(), 5, 1, 0)), trainData);
+            sparkNetwork = trainModel(new SparkDl4jMultiLayer(sc, model, trainMaster), trainData);
         }
         // Eval
         JavaRDD<DataSet> testData = loadData(sc, testPath, seqOutputPath, numTestExamples, false, null, DataMode.CLS_TEST);
@@ -63,9 +71,9 @@ public class ImageNetSparkExample extends ImageNetMain {
         cleanUp(testData);
     }
 
-    private JavaSparkContext setupLocalSpark(){
+    private JavaSparkContext setupSpark(){
         SparkConf conf = new SparkConf()
-                .setMaster("local[*]");
+                .setMaster(sparkMasterUrl);
         conf.setAppName("ImageNet Local");
 //        conf.set("spak.executor.memory", "4g");
 //        conf.set("spak.driver.memory", "4g");
@@ -75,26 +83,27 @@ public class ImageNetSparkExample extends ImageNetMain {
     }
 
 
-    private JavaSparkContext setupClusterSpark(){
-        SparkConf conf = new SparkConf();
-        conf.setAppName("ImageNet Cluster");
-        return new JavaSparkContext(conf);
-    }
-
     private JavaRDD<DataSet> loadData(JavaSparkContext sc, String inputPath, String seqOutputPath, int numExamples, boolean save, ImageTransform transform, DataMode dataMode) {
         System.out.println("Load data...");
 
-        JavaPairRDD<Text, BytesWritable> filesAsBytes;
+        JavaPairRDD<Text, BytesWritable> filesAsBytes = null;
         JavaRDD<DataSet> data;
 
         if(inputPath==null && seqOutputPath != null){
             filesAsBytes = sc.sequenceFile(seqOutputPath, Text.class, BytesWritable.class);
-        } else if(version == "SparkStandAlone"){
-            PreProcessData pData = new PreProcessData(sc, save);
-            pData.setupSequnceFile(inputPath, seqOutputPath);
-            filesAsBytes = pData.getFile();
+//        } else if(version == "SparkStandAlone"){
+//            PreProcessData pData = new PreProcessData(sc, save);
+//            pData.setupSequnceFile(inputPath, seqOutputPath);
+//            filesAsBytes = pData.getFile();
         } else {
-            throw new IllegalArgumentException("Data can not be loaded running on a cluaster without an outputPath.");
+            ImageNetDataSetIterator img = new ImageNetDataSetIterator(batchSize, numExamples,
+            new int[] {HEIGHT, WIDTH, CHANNELS}, numLabels, dataMode, splitTrainTest, transform, normalizeValue, rng);
+            List<DataSet> dataList = new ArrayList<>();
+            while(img.hasNext()){
+                dataList.add(img.next());
+            }
+            return sc.parallelize(dataList);
+//            throw new IllegalArgumentException("Data can not be loaded running on a cluster without an outputPath.");
         }
 
         RecordReaderBytesFunction recordReaderFunc = new RecordReaderBytesFunction(

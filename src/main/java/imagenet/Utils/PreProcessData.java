@@ -1,6 +1,6 @@
 package imagenet.Utils;
 
-;
+
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 
@@ -20,12 +20,9 @@ import org.canova.spark.functions.data.RecordReaderBytesFunction;
 import org.deeplearning4j.spark.canova.CanovaDataSetFunction;
 import org.nd4j.linalg.dataset.DataSet;
 
-
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
-import java.util.List;
-import java.util.regex.Pattern;
 
 /**
  * Prep data as sequence files to group small files into larger batches to enable
@@ -34,7 +31,7 @@ import java.util.regex.Pattern;
  */
 public class PreProcessData {
 
-    protected static final String TEMP_DIR = FilenameUtils.concat(System.getProperty("java.io.tmpdir"), "ImageNetSeqFiles");
+    public static final String TEMP_DIR = FilenameUtils.concat(System.getProperty("java.io.tmpdir"), "ImageNetSeqFiles");
     protected static String SEQUENCE_DIR;
     protected JavaPairRDD<Text, BytesWritable> sequenceFile;
     protected boolean save = false;

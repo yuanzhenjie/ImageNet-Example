@@ -15,8 +15,11 @@
         <dl4j.version>0.4-rc3.11-SNAPSHOT</dl4j.version>
         <canova.version>0.0.0.17-SNAPSHOT</canova.version>
         <spark.version>1.6.0</spark.version>
-        <scala.binary.version>2.10</scala.binary.version>
+        <scala.binary.version>2.11</scala.binary.version>
         <junit.version>4.12</junit.version>
+        <jackson.version>2.4.4</jackson.version>
+        <maven-shade-plugin.version>2.4.3</maven-shade-plugin.version>
+        <exec-maven-plugin.version>1.4.0</exec-maven-plugin.version>
     </properties>
 
     <distributionManagement>
@@ -52,16 +55,28 @@
             <groupId>org.deeplearning4j</groupId>
             <artifactId>deeplearning4j-ui</artifactId>
             <version>${dl4j.version}</version>
-        </dependency>
-        <dependency>
-            <groupId>com.google.guava</groupId>
-            <artifactId>guava</artifactId>
-            <version>19.0</version>
+            <exclusions>
+                <!--Excluded to avoid conflict -->
+                <exclusion>
+                    <groupId>ch.qos.logback</groupId>
+                    <artifactId>logback-classic</artifactId>
+                </exclusion>
+            </exclusions>
         </dependency>
         <dependency>
             <groupId>org.deeplearning4j</groupId>
             <artifactId>model-sanctuary</artifactId>
             <version>1.0-SNAPSHOT</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+            <version>${jackson.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-guava</artifactId>
+            <version>${jackson.version}</version>
         </dependency>
         <dependency>
             <groupId>com.fasterxml.jackson.dataformat</groupId>
@@ -72,6 +87,15 @@
             <artifactId>canova-nd4j-image</artifactId>
             <groupId>org.nd4j</groupId>
             <version>${canova.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.nd4j</groupId>
+            <artifactId>${nd4j.backend}</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>19.0</version>
         </dependency>
         <!-- Spark -->
         <dependency>
@@ -120,9 +144,13 @@
                     <artifactId>akka-slf4j_2.10</artifactId>
                 </exclusion>
                 <!--resolves version conflicts between dropwizard for ui and spark-->
+                <!--<exclusion>-->
+                    <!--<groupId>com.sun.jersey</groupId>-->
+                    <!--<artifactId>*</artifactId>-->
+                <!--</exclusion>-->
                 <exclusion>
                     <groupId>com.sun.jersey</groupId>
-                    <artifactId>*</artifactId>
+                    <artifactId>jersey-core</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
@@ -148,7 +176,7 @@
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>1.4.0</version>
+                <version>${exec-maven-plugin.version}</version>
                 <executions>
                     <execution>
                         <goals>
@@ -163,7 +191,7 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-shade-plugin</artifactId>
-                <version>1.6</version>
+                <version>${maven-shade-plugin.version}</version>
                 <configuration>
                     <createDependencyReducedPom>true</createDependencyReducedPom>
                     <filters>
@@ -206,8 +234,8 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
+                    <source>${maven-shade-plugin.version}</source>
+                    <target>${maven-shade-plugin.version}</target>
                 </configuration>
             </plugin>
         </plugins>

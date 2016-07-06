@@ -35,17 +35,15 @@ import java.util.*;
  * Andrej Karpathy, Aditya Khosla, Michael Bernstein, Alexander C. Berg and Li Fei-Fei.
  * (* = equal contribution) ImageNet Large Scale Visual Recognition Challenge. arXiv:1409.0575, 2014.
  *
-
- * Created by nyghtowl on 1/12/16.
  */
 public class ImageNetMain {
     private static final Logger log = LoggerFactory.getLogger(ImageNetMain.class);
 
     // values to pass in from command line when compiled, esp running remotely
     @Option(name="--version",usage="Version to run (Standard, SparkStandAlone, SparkCluster)",aliases = "-v")
-    protected String version = "Standard";
+    protected String version = "SparkStandAlone";
     @Option(name="--modelType",usage="Type of model (AlexNet, VGGNetA, VGGNetB)",aliases = "-mT")
-    protected String modelType = "AlexNet";
+    protected String modelType = "LeNet";
     @Option(name="--batchSize",usage="Batch size",aliases="-b")
     protected int batchSize = 40;
     @Option(name="--testBatchSize",usage="Test Batch size",aliases="-tB")
@@ -86,7 +84,7 @@ public class ImageNetMain {
     protected int listenerFreq = 1;
     protected int numTrainExamples = batchSize * numBatches;
     protected int numTestExamples = testBatchSize * numTestBatches;
-    protected int asynQues = 1;
+    protected int asynQues = 5;
     protected int normalizeValue = 255;
     protected double splitTrainTest = 0.8;
 
@@ -105,6 +103,7 @@ public class ImageNetMain {
     protected String[] layerNames; // Names of layers to store parameters
     protected String rootParamPath;
 
+    protected String sparkMasterUrl = "local[" + asynQues + "]";
 
     protected MultiLayerNetwork model = null;
 
