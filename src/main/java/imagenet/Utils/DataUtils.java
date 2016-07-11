@@ -7,7 +7,7 @@ import org.nd4j.linalg.dataset.api.DataSetPreProcessor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.awt.*;
+import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
@@ -30,6 +30,30 @@ public class DataUtils {
     protected static String outputFolder = "seqTrain";
     protected static String inputPath = FilenameUtils.concat(basePath, inputFolder);
     protected static String outputPath = FilenameUtils.concat(basePath, outputFolder);
+    protected static BufferedImage bImg;
+
+    public void convertToBuffer(File fileName){
+        BufferedImage img = null;
+        try {
+            img = ImageIO.read(fileName);
+            if (img == null) {
+                log.warn("This file is empty and has been deleted", fileName);
+                fileName.delete();
+                return;
+            }
+            bImg = img;
+        } catch (IOException e) {
+            log.warn("Caught an IOException: " + e);
+        }
+    }
+
+    public void saveImage(File fileName){
+        try {
+            ImageIO.write(bImg, "jpg", fileName);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     public static void checkDirExists(File path){
         if (!path.exists()) {
@@ -42,23 +66,9 @@ public class DataUtils {
         }
     }
 
-    // flip images
-    public static void flipFiles(ImageTransformUtils imgTransform, int rotationAngle){
-        imgTransform.flipImage(rotationAngle); // 180 and other values
-    }
-
-    // center and resize images
-    public void initCenterResize(ImageTransformUtils imgTransform, int newW, int newH){
-        imgTransform.centerResize(newW, newH);
-    }
-
-    // change pixels...
-
     // change file contents
     public void init(File inputPath) {
         boolean recursive = true;
-
-        ImageTransformUtils imgTransform = new ImageTransformUtils();
 
         if(inputPath.isDirectory()) {
             Iterator iter = FileUtils.iterateFiles(inputPath, ImageNetLoader.ALLOWED_FORMATS, recursive);
@@ -67,18 +77,18 @@ public class DataUtils {
             int numDel = 0;
             while(iter.hasNext()) {
                 File fileName = (File) iter.next();
-                imgTransform.convertToBuffer(fileName);
+                convertToBuffer(fileName);
                 // ******** add other transforms here ********
-                if(imgTransform.getImage()==null)
+                if(bImg == null)
                     numDel++;
                 else {
-                    imgTransform.saveImage(new File(outputPath+numSaved));
+                    saveImage(new File(outputPath+numSaved));
                     numSaved++;
                 }
             }
             log.info("Number of files deleted: " + numDel);
         } else {
-            imgTransform.convertToBuffer(inputPath);
+            convertToBuffer(inputPath);
         }
 
     }
@@ -129,7 +139,7 @@ public class DataUtils {
 
             // TODO process images before grouping into sequence files
             ppd.setupSequnceFile(storePath + "/*", outputPath + "/" + count);
-            ppd.checkFile(outputPath + "/" + count, DataMode.CLS_TRAIN);
+            ppd.checkFile(outputPath + "/" + count, DataModeEnum.CLS_TRAIN);
             count++;
         }
         try {

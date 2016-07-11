@@ -1,11 +1,11 @@
 package imagenet;
 
+import imagenet.Models.AlexNet;
+import imagenet.Models.LeNet;
+import imagenet.Models.VGGNetA;
+import imagenet.Models.VGGNetD;
 import imagenet.Utils.ImageNetLoader;
 import org.apache.commons.io.FilenameUtils;
-import org.deeplearning4j.AlexNet;
-import org.deeplearning4j.LeNet;
-import org.deeplearning4j.VGGNetA;
-import org.deeplearning4j.VGGNetD;
 import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
 import org.deeplearning4j.optimize.api.IterationListener;
 import org.deeplearning4j.optimize.listeners.ParamAndGradientIterationListener;
@@ -41,7 +41,7 @@ public class ImageNetMain {
 
     // values to pass in from command line when compiled, esp running remotely
     @Option(name="--version",usage="Version to run (Standard, SparkStandAlone, SparkCluster)",aliases = "-v")
-    protected String version = "SparkStandAlone";
+    protected String version = "Standard";
     @Option(name="--modelType",usage="Type of model (AlexNet, VGGNetA, VGGNetB)",aliases = "-mT")
     protected String modelType = "LeNet";
     @Option(name="--batchSize",usage="Batch size",aliases="-b")
@@ -49,7 +49,7 @@ public class ImageNetMain {
     @Option(name="--testBatchSize",usage="Test Batch size",aliases="-tB")
     protected int testBatchSize = batchSize;
     @Option(name="--numBatches",usage="Number of batches",aliases="-nB")
-    protected int numBatches = 5;
+    protected int numBatches = 1;
     @Option(name="--numTestBatches",usage="Number of test batches",aliases="-nTB")
     protected int numTestBatches = numBatches;
     @Option(name="--numEpochs",usage="Number of epochs",aliases="-nE")

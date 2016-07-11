@@ -1,6 +1,6 @@
 package imagenet;
 
-import imagenet.Utils.DataMode;
+import imagenet.Utils.DataModeEnum;
 import imagenet.Utils.ImageNetDataSetIterator;
 import imagenet.Utils.ImageNetRecordReader;
 import imagenet.Utils.PreProcessData;
@@ -43,8 +43,8 @@ public class ImageNetSparkExample extends ImageNetMain {
         String seqOutputPath = FilenameUtils.concat(PreProcessData.TEMP_DIR, "tmp");
         SparkDl4jMultiLayer sparkNetwork = null;
         JavaRDD<DataSet> trainData = null;
-        ImageTransform flipTransform = new FlipImageTransform(new Random(42));
-        ImageTransform warpTransform = new WarpImageTransform(new Random(42), 42);
+        ImageTransform flipTransform = new FlipImageTransform(rng);
+        ImageTransform warpTransform = new WarpImageTransform(rng, seed);
         List<ImageTransform> transforms = Arrays.asList(new ImageTransform[] {null, flipTransform, warpTransform});
 
         //Setup parameter averaging
@@ -56,11 +56,11 @@ public class ImageNetSparkExample extends ImageNetMain {
                 .build();
 
         for(ImageTransform transform: transforms) {
-            trainData = loadData(sc, trainPath, seqOutputPath, numTrainExamples, false, transform, DataMode.CLS_TRAIN);
+            trainData = loadData(sc, trainPath, seqOutputPath, numTrainExamples, false, transform, DataModeEnum.CLS_TRAIN);
             sparkNetwork = trainModel(new SparkDl4jMultiLayer(sc, model, trainMaster), trainData);
         }
         // Eval
-        JavaRDD<DataSet> testData = loadData(sc, testPath, seqOutputPath, numTestExamples, false, null, DataMode.CLS_TEST);
+        JavaRDD<DataSet> testData = loadData(sc, testPath, seqOutputPath, numTestExamples, false, null, DataModeEnum.CLS_TEST);
         evaluatePerformance(sparkNetwork, testData);
 
         // Save
@@ -83,7 +83,7 @@ public class ImageNetSparkExample extends ImageNetMain {
     }
 
 
-    private JavaRDD<DataSet> loadData(JavaSparkContext sc, String inputPath, String seqOutputPath, int numExamples, boolean save, ImageTransform transform, DataMode dataMode) {
+    private JavaRDD<DataSet> loadData(JavaSparkContext sc, String inputPath, String seqOutputPath, int numExamples, boolean save, ImageTransform transform, DataModeEnum dataModeEnum) {
         System.out.println("Load data...");
 
         JavaPairRDD<Text, BytesWritable> filesAsBytes = null;
@@ -97,7 +97,7 @@ public class ImageNetSparkExample extends ImageNetMain {
 //            filesAsBytes = pData.getFile();
         } else {
             ImageNetDataSetIterator img = new ImageNetDataSetIterator(batchSize, numExamples,
-            new int[] {HEIGHT, WIDTH, CHANNELS}, numLabels, dataMode, splitTrainTest, transform, normalizeValue, rng);
+            new int[] {HEIGHT, WIDTH, CHANNELS}, numLabels, dataModeEnum, splitTrainTest, transform, normalizeValue, rng);
             List<DataSet> dataList = new ArrayList<>();
             while(img.hasNext()){
                 dataList.add(img.next());
@@ -107,7 +107,7 @@ public class ImageNetSparkExample extends ImageNetMain {
         }
 
         RecordReaderBytesFunction recordReaderFunc = new RecordReaderBytesFunction(
-                    new ImageNetRecordReader(HEIGHT, WIDTH, CHANNELS, null, transform, normalizeValue, dataMode));
+                    new ImageNetRecordReader(HEIGHT, WIDTH, CHANNELS, null, transform, normalizeValue, dataModeEnum));
 
         JavaRDD<Collection<Writable>> rdd = filesAsBytes.map(recordReaderFunc);
         // Load all files in path

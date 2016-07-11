@@ -18,7 +18,7 @@ public class ImageNetLoaderTest {
     @Test
     public void testLoader() {
         File dir = new File(ImageNetLoader.BASE_DIR, ImageNetLoader.LOCAL_TRAIN_DIR);
-        new ImageNetLoader(1, 1, 1, null, DataMode.CLS_TRAIN, 1, new Random(42), dir);
+        new ImageNetLoader(1, 1, 1, null, DataModeEnum.CLS_TRAIN, 1, new Random(42), dir);
         assertTrue(dir.exists());
     }
 
@@ -29,7 +29,7 @@ public class ImageNetLoaderTest {
         int nChannels = 3;
         int numCategories = ImageNetLoader.NUM_CLS_LABELS;
 
-        RecordReader record = new ImageNetLoader(1, 1, numCategories, null, DataMode.CLS_TRAIN, 1, new Random(42), null).getRecordReader(new int[]{numRows, numColumns, nChannels}, null, 255);
+        RecordReader record = new ImageNetLoader(1, 1, numCategories, null, DataModeEnum.CLS_TRAIN, 1, new Random(42), null).getRecordReader(new int[]{numRows, numColumns, nChannels}, null, 255);
         List<String> numLabels = record.getLabels();
         assertEquals(numCategories, numLabels.size());
 

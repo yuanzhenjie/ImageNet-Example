@@ -9,12 +9,9 @@ import org.canova.api.records.reader.RecordReader;
 import org.canova.api.records.reader.impl.CSVRecordReader;
 import org.canova.api.split.FileSplit;
 import org.canova.api.split.InputSplit;
-import org.canova.api.split.LimitFileSplit;
 import org.canova.api.writable.Writable;
 import org.canova.image.loader.BaseImageLoader;
-import org.canova.image.recordreader.ImageRecordReader;
 import org.canova.image.transform.ImageTransform;
-import org.codehaus.jackson.map.deser.ValueInstantiators;
 import org.nd4j.linalg.api.ndarray.INDArray;
 
 import javax.validation.constraints.Null;
@@ -68,21 +65,21 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
     protected double splitTrainTest;
     protected Random rng;
 
-    protected DataMode dataMode; // CLS_Train, CLS_VAL, CLS_TEST, DET_TRAIN, DET_VAL, DET_TEST
+    protected DataModeEnum dataModeEnum; // CLS_Train, CLS_VAL, CLS_TEST, DET_TRAIN, DET_VAL, DET_TEST
     protected final static String REGEX_PATTERN = Pattern.quote("_");
     public final static PathLabelGenerator LABEL_PATTERN = new PatternPathLabelGenerator(REGEX_PATTERN);
     protected RecordReader recordReader;
 
-    public ImageNetLoader(int batchSize, int numExamples, int numLabels, @Null PathLabelGenerator labelGenerator, DataMode dataMode, @Null double splitTrainTest, @Null Random rng, @Null File localDir){
+    public ImageNetLoader(int batchSize, int numExamples, int numLabels, @Null PathLabelGenerator labelGenerator, DataModeEnum dataModeEnum, @Null double splitTrainTest, @Null Random rng, @Null File localDir){
         this.batchSize = batchSize;
         this.numExamples = numExamples;
         this.numLabels = numLabels;
         this.labelGenerator = labelGenerator == null? LABEL_PATTERN: labelGenerator;
-        this.labelFilePath = (dataMode == DataMode.CLS_VAL || dataMode == DataMode.DET_VAL)? CLS_VAL_ID_TO_LABELS: CLS_TRAIN_ID_TO_LABELS;
+        this.labelFilePath = (dataModeEnum == DataModeEnum.CLS_VAL || dataModeEnum == DataModeEnum.DET_VAL)? CLS_VAL_ID_TO_LABELS: CLS_TRAIN_ID_TO_LABELS;
         this.splitTrainTest = Double.isNaN(splitTrainTest)? 1: splitTrainTest;
         this.rng = rng == null? new Random(System.currentTimeMillis()): rng;
-        this.dataMode = dataMode;
-        switch (dataMode) {
+        this.dataModeEnum = dataModeEnum;
+        switch (dataModeEnum) {
             case CLS_TRAIN:
                 this.fullDir = localDir == null? fullTrainDir: localDir;
                 this.urlList = sampleURLTrainList;
@@ -188,10 +185,10 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
 
     public RecordReader getRecordReader(int[]imgDim, ImageTransform imageTransform, int normalizeValue) {
         load();
-        recordReader = new ImageNetRecordReader(imgDim[0], imgDim[1], imgDim[2], labelGenerator, imageTransform, normalizeValue, dataMode);
+        recordReader = new ImageNetRecordReader(imgDim[0], imgDim[1], imgDim[2], labelGenerator, imageTransform, normalizeValue, dataModeEnum);
 
         try {
-            InputSplit data = (dataMode == DataMode.CLS_TRAIN || dataMode == DataMode.DET_TRAIN)? inputSplit[0]: inputSplit[1];
+            InputSplit data = (dataModeEnum == DataModeEnum.CLS_TRAIN || dataModeEnum == DataModeEnum.DET_TRAIN)? inputSplit[0]: inputSplit[1];
             recordReader.initialize(data);
         } catch (IOException | InterruptedException e) {
             e.printStackTrace();

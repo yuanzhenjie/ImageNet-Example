@@ -1,7 +1,7 @@
 package imagenet;
 
 
-import imagenet.Utils.DataMode;
+import imagenet.Utils.DataModeEnum;
 import imagenet.Utils.ImageNetDataSetIterator;
 
 
@@ -45,7 +45,7 @@ public class ImageNetStandardExample extends ImageNetMain {
 
         for(ImageTransform transform: transforms) {
             log.info("Training with " + (transform == null? "no": transform.toString()) + " transform");
-            trainIter = loadData(numTrainExamples, transform, DataMode.CLS_TRAIN);
+            trainIter = loadData(numTrainExamples, transform, DataModeEnum.CLS_TRAIN);
             trainModel(trainIter);
         }
 
@@ -54,7 +54,7 @@ public class ImageNetStandardExample extends ImageNetMain {
 
         // Evaluation
         numEpochs = 1;
-        MultipleEpochsIterator testIter = loadData(numTestExamples, null, DataMode.CLS_TEST);
+        MultipleEpochsIterator testIter = loadData(numTestExamples, null, DataModeEnum.CLS_TEST);
         evaluatePerformance(testIter);
 
         // Save
@@ -62,7 +62,7 @@ public class ImageNetStandardExample extends ImageNetMain {
 
     }
 
-    private MultipleEpochsIterator loadData(int numExamples, ImageTransform transform, DataMode dataMode){
+    private MultipleEpochsIterator loadData(int numExamples, ImageTransform transform, DataModeEnum dataModeEnum){
         System.out.println("Load data....");
 
         // TODO incorporate some formate of below code when using full validation set to pass valLabelMap through iterator
@@ -71,7 +71,7 @@ public class ImageNetStandardExample extends ImageNetMain {
 
         return new MultipleEpochsIterator(numEpochs,
                 new ImageNetDataSetIterator(batchSize, numExamples,
-                        new int[] {HEIGHT, WIDTH, CHANNELS}, numLabels, dataMode, splitTrainTest, transform, normalizeValue, rng), asynQues);
+                        new int[] {HEIGHT, WIDTH, CHANNELS}, numLabels, dataModeEnum, splitTrainTest, transform, normalizeValue, rng), asynQues);
     }
 
 

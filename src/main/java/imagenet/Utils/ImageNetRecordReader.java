@@ -5,16 +5,11 @@ import org.apache.commons.io.FilenameUtils;
 import org.canova.api.io.data.IntWritable;
 import org.canova.api.io.data.Text;
 import org.canova.api.io.labels.PathLabelGenerator;
-import org.canova.api.split.FileSplit;
-import org.canova.api.split.InputSplit;
 import org.canova.api.writable.Writable;
 import org.canova.common.RecordConverter;
-import org.canova.image.loader.NativeImageLoader;
 import org.canova.image.recordreader.BaseImageRecordReader;
 import org.canova.image.transform.ImageTransform;
 import org.nd4j.linalg.api.ndarray.INDArray;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.URI;
@@ -26,11 +21,11 @@ import java.util.*;
 public class ImageNetRecordReader extends BaseImageRecordReader {
 
     protected Map<String,String> labelFileIdMap = new LinkedHashMap<>();
-    protected DataMode dataMode = DataMode.CLS_TRAIN; // use to load label ids for validation data set
+    protected DataModeEnum dataModeEnum = DataModeEnum.CLS_TRAIN; // use to load label ids for validation data set
 
-    public ImageNetRecordReader(int height, int width, int channels, PathLabelGenerator labelGenerator, ImageTransform imgTransform, double normalizeValue, DataMode dataMode) {
+    public ImageNetRecordReader(int height, int width, int channels, PathLabelGenerator labelGenerator, ImageTransform imgTransform, double normalizeValue, DataModeEnum dataModeEnum) {
         super(height, width, channels, labelGenerator, imgTransform, normalizeValue);
-        this.dataMode = dataMode;
+        this.dataModeEnum = dataModeEnum;
         this.labelSetup();
     }
 
@@ -58,7 +53,7 @@ public class ImageNetRecordReader extends BaseImageRecordReader {
             labels = new ArrayList<>(labelFileIdMap.values());
         }
         // creates hasmap with filename as key and WNID(synset id) as value when using val files
-        if((dataMode == DataMode.CLS_VAL || dataMode == DataMode.DET_VAL) && fileNameMap.isEmpty()) {
+        if((dataModeEnum == DataModeEnum.CLS_VAL || dataModeEnum == DataModeEnum.DET_VAL) && fileNameMap.isEmpty()) {
             try {
                 fileNameMap = defineLabels(ImageNetLoader.BASE_DIR + ImageNetLoader.CLS_VAL_ID_TO_LABELS);
             }  catch (IOException e){
@@ -110,7 +105,7 @@ public class ImageNetRecordReader extends BaseImageRecordReader {
     private Collection<Writable> setUpRecord(INDArray image, String filename) throws IOException {
         int labelId;
         Collection<Writable> ret = RecordConverter.toRecord(image);
-        if (dataMode != DataMode.CLS_VAL || dataMode != DataMode.DET_VAL) {
+        if (dataModeEnum != DataModeEnum.CLS_VAL || dataModeEnum != DataModeEnum.DET_VAL) {
 //            String WNID = FilenameUtils.getBaseName(filename).split(pattern)[patternPosition];
             Writable WNID = labelGenerator.getLabelForPath(filename);
             labelId = labels.indexOf(labelFileIdMap.get(WNID.toString()));
