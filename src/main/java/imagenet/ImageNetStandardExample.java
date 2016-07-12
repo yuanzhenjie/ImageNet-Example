@@ -5,9 +5,9 @@ import imagenet.Utils.DataModeEnum;
 import imagenet.Utils.ImageNetDataSetIterator;
 
 
-import org.canova.image.transform.ImageTransform;
-import org.canova.image.transform.FlipImageTransform;
-import org.canova.image.transform.WarpImageTransform;
+import org.datavec.image.transform.FlipImageTransform;
+import org.datavec.image.transform.ImageTransform;
+import org.datavec.image.transform.WarpImageTransform;
 import org.deeplearning4j.datasets.iterator.MultipleEpochsIterator;
 import org.deeplearning4j.eval.Evaluation;
 import org.deeplearning4j.gradientcheck.GradientCheckUtil;
@@ -71,7 +71,7 @@ public class ImageNetStandardExample extends ImageNetMain {
 
         return new MultipleEpochsIterator(numEpochs,
                 new ImageNetDataSetIterator(batchSize, numExamples,
-                        new int[] {HEIGHT, WIDTH, CHANNELS}, numLabels, dataModeEnum, splitTrainTest, transform, normalizeValue, rng), asynQues);
+                        new int[] {HEIGHT, WIDTH, CHANNELS}, numLabels, maxExamples2Label, dataModeEnum, splitTrainTest, transform, normalizeValue, rng), asynQues);
     }
 
 

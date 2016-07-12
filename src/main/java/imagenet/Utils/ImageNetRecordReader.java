@@ -2,13 +2,13 @@ package imagenet.Utils;
 
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.canova.api.io.data.IntWritable;
-import org.canova.api.io.data.Text;
-import org.canova.api.io.labels.PathLabelGenerator;
-import org.canova.api.writable.Writable;
-import org.canova.common.RecordConverter;
-import org.canova.image.recordreader.BaseImageRecordReader;
-import org.canova.image.transform.ImageTransform;
+import org.datavec.api.io.labels.PathLabelGenerator;
+import org.datavec.api.writable.IntWritable;
+import org.datavec.api.writable.Text;
+import org.datavec.api.writable.Writable;
+import org.datavec.common.RecordConverter;
+import org.datavec.image.recordreader.BaseImageRecordReader;
+import org.datavec.image.transform.ImageTransform;
 import org.nd4j.linalg.api.ndarray.INDArray;
 
 import java.io.*;

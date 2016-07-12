@@ -10,13 +10,13 @@ import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import org.canova.api.writable.Writable;
-import org.canova.image.transform.FlipImageTransform;
-import org.canova.image.transform.ImageTransform;
-import org.canova.image.transform.WarpImageTransform;
-import org.canova.spark.functions.data.RecordReaderBytesFunction;
+import org.datavec.api.writable.Writable;
+import org.datavec.image.transform.FlipImageTransform;
+import org.datavec.image.transform.ImageTransform;
+import org.datavec.image.transform.WarpImageTransform;
+import org.datavec.spark.functions.data.RecordReaderBytesFunction;
 import org.deeplearning4j.eval.Evaluation;
-import org.deeplearning4j.spark.canova.CanovaDataSetFunction;
+import org.deeplearning4j.spark.datavec.DataVecDataSetFunction;
 import org.deeplearning4j.spark.impl.multilayer.SparkDl4jMultiLayer;
 import org.deeplearning4j.spark.impl.paramavg.ParameterAveragingTrainingMaster;
 import org.slf4j.Logger;
@@ -55,6 +55,11 @@ public class ImageNetSparkExample extends ImageNetMain {
                 .batchSizePerWorker(batchSize)
                 .build();
 
+        // Build
+        buildModel();
+        setListeners();
+
+        // Train
         for(ImageTransform transform: transforms) {
             trainData = loadData(sc, trainPath, seqOutputPath, numTrainExamples, false, transform, DataModeEnum.CLS_TRAIN);
             sparkNetwork = trainModel(new SparkDl4jMultiLayer(sc, model, trainMaster), trainData);
@@ -97,7 +102,7 @@ public class ImageNetSparkExample extends ImageNetMain {
 //            filesAsBytes = pData.getFile();
         } else {
             ImageNetDataSetIterator img = new ImageNetDataSetIterator(batchSize, numExamples,
-            new int[] {HEIGHT, WIDTH, CHANNELS}, numLabels, dataModeEnum, splitTrainTest, transform, normalizeValue, rng);
+            new int[] {HEIGHT, WIDTH, CHANNELS}, numLabels, maxExamples2Label, dataModeEnum, splitTrainTest, transform, normalizeValue, rng);
             List<DataSet> dataList = new ArrayList<>();
             while(img.hasNext()){
                 dataList.add(img.next());
@@ -112,10 +117,10 @@ public class ImageNetSparkExample extends ImageNetMain {
         JavaRDD<Collection<Writable>> rdd = filesAsBytes.map(recordReaderFunc);
         // Load all files in path
         if(numExamples==-1)
-            data = rdd.map(new CanovaDataSetFunction(-1, numLabels, false));
+            data = rdd.map(new DataVecDataSetFunction(-1, numLabels, false));
         else {
             // Limit number examples loaded
-            JavaRDD<DataSet> dataRdd = rdd.map(new CanovaDataSetFunction(-1, numLabels, false));
+            JavaRDD<DataSet> dataRdd = rdd.map(new DataVecDataSetFunction(-1, numLabels, false));
             List<DataSet> listData = dataRdd.take(numExamples); // should have features and labels (1*1860) filled out
             data = sc.parallelize(listData);
         }

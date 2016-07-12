@@ -1,5 +1,7 @@
 # ImageNet-Example
 
+[![Join the chat at https://gitter.im/deeplearning4j/deeplearning4j](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/deeplearning4j/deeplearning4j?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 ImageNet is a large scale visual recognition challenge run by Stanford and Princeton. The competition covers standard object classification as well as identifying object location in the image. This repo provides code for the ImageNet classification exercise.
   
 **This example is currenlty in development; thus,not complete.** If you find bugs, log an issue or send a PR. Help is welcome.

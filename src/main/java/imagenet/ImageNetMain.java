@@ -41,7 +41,7 @@ public class ImageNetMain {
 
     // values to pass in from command line when compiled, esp running remotely
     @Option(name="--version",usage="Version to run (Standard, SparkStandAlone, SparkCluster)",aliases = "-v")
-    protected String version = "Standard";
+    protected String version = "SparkStandAlone";
     @Option(name="--modelType",usage="Type of model (AlexNet, VGGNetA, VGGNetB)",aliases = "-mT")
     protected String modelType = "LeNet";
     @Option(name="--batchSize",usage="Batch size",aliases="-b")
@@ -84,6 +84,7 @@ public class ImageNetMain {
     protected int listenerFreq = 1;
     protected int numTrainExamples = batchSize * numBatches;
     protected int numTestExamples = testBatchSize * numTestBatches;
+    protected int maxExamples2Label = 10;
     protected int asynQues = 5;
     protected int normalizeValue = 255;
     protected double splitTrainTest = 0.8;

@@ -2,16 +2,16 @@ package imagenet.Utils;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang.NotImplementedException;
-import org.canova.api.io.filters.BalancedPathFilter;
-import org.canova.api.io.labels.PathLabelGenerator;
-import org.canova.api.io.labels.PatternPathLabelGenerator;
-import org.canova.api.records.reader.RecordReader;
-import org.canova.api.records.reader.impl.CSVRecordReader;
-import org.canova.api.split.FileSplit;
-import org.canova.api.split.InputSplit;
-import org.canova.api.writable.Writable;
-import org.canova.image.loader.BaseImageLoader;
-import org.canova.image.transform.ImageTransform;
+import org.datavec.api.io.filters.BalancedPathFilter;
+import org.datavec.api.io.labels.PathLabelGenerator;
+import org.datavec.api.io.labels.PatternPathLabelGenerator;
+import org.datavec.api.records.reader.RecordReader;
+import org.datavec.api.records.reader.impl.csv.CSVRecordReader;
+import org.datavec.api.split.FileSplit;
+import org.datavec.api.split.InputSplit;
+import org.datavec.api.writable.Writable;
+import org.datavec.image.loader.NativeImageLoader;
+import org.datavec.image.transform.ImageTransform;
 import org.nd4j.linalg.api.ndarray.INDArray;
 
 import javax.validation.constraints.Null;
@@ -20,10 +20,10 @@ import java.util.*;
 import java.util.regex.Pattern;
 
 /**
- * Canova Loader specific to this project.
+ * Loader specific to this project.
  */
 
-public class ImageNetLoader extends BaseImageLoader implements Serializable{
+public class ImageNetLoader extends NativeImageLoader implements Serializable{
 
     public final static int NUM_CLS_TRAIN_IMAGES = 1281167;
     public final static int NUM_CLS_VAL_IMAGES = 50000;
@@ -61,6 +61,7 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
     protected int batchSize;
     protected int numExamples;
     protected int numLabels;
+    protected int maxExamples2Label;
     protected PathLabelGenerator labelGenerator;
     protected double splitTrainTest;
     protected Random rng;
@@ -70,10 +71,11 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
     public final static PathLabelGenerator LABEL_PATTERN = new PatternPathLabelGenerator(REGEX_PATTERN);
     protected RecordReader recordReader;
 
-    public ImageNetLoader(int batchSize, int numExamples, int numLabels, @Null PathLabelGenerator labelGenerator, DataModeEnum dataModeEnum, @Null double splitTrainTest, @Null Random rng, @Null File localDir){
+    public ImageNetLoader(int batchSize, int numExamples, int numLabels, int maxExamples2Label, @Null PathLabelGenerator labelGenerator, DataModeEnum dataModeEnum, @Null double splitTrainTest, @Null Random rng, @Null File localDir){
         this.batchSize = batchSize;
         this.numExamples = numExamples;
         this.numLabels = numLabels;
+        this.maxExamples2Label = maxExamples2Label;
         this.labelGenerator = labelGenerator == null? LABEL_PATTERN: labelGenerator;
         this.labelFilePath = (dataModeEnum == DataModeEnum.CLS_VAL || dataModeEnum == DataModeEnum.DET_VAL)? CLS_VAL_ID_TO_LABELS: CLS_TRAIN_ID_TO_LABELS;
         this.splitTrainTest = Double.isNaN(splitTrainTest)? 1: splitTrainTest;
@@ -171,7 +173,7 @@ public class ImageNetLoader extends BaseImageLoader implements Serializable{
             }
         }
         FileSplit fileSplit = new FileSplit(fullDir, ALLOWED_FORMATS, rng);
-        BalancedPathFilter pathFilter = new BalancedPathFilter(rng, ALLOWED_FORMATS,labelGenerator, numExamples, numLabels, 0, 0, null);
+        BalancedPathFilter pathFilter = new BalancedPathFilter(rng, ALLOWED_FORMATS,labelGenerator, numExamples, numLabels, maxExamples2Label, maxExamples2Label, null);
         inputSplit = fileSplit.sample(pathFilter, numExamples*splitTrainTest, numExamples*(1-splitTrainTest));
     }
 

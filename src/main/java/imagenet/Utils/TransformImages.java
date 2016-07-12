@@ -1,6 +1,5 @@
 package imagenet.Utils;
 
-import imagenet.Utils.DataUtils;
 import org.apache.commons.io.FilenameUtils;
 
 import java.io.File;

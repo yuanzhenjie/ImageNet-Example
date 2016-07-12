@@ -13,11 +13,12 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
 import org.apache.spark.input.PortableDataStream;
-import org.canova.api.writable.Writable;
-import org.canova.spark.functions.data.FilesAsBytesFunction;
-import org.canova.spark.functions.data.RecordReaderBytesFunction;
 
+import org.datavec.api.writable.Writable;
+import org.datavec.spark.functions.data.FilesAsBytesFunction;
+import org.datavec.spark.functions.data.RecordReaderBytesFunction;
 import org.deeplearning4j.spark.canova.CanovaDataSetFunction;
+import org.deeplearning4j.spark.datavec.DataVecDataSetFunction;
 import org.nd4j.linalg.dataset.DataSet;
 
 import java.io.File;
@@ -105,7 +106,7 @@ public class PreProcessData {
         RecordReaderBytesFunction recordReaderFunc = new RecordReaderBytesFunction(
                 new ImageNetRecordReader(40, 40, 3, null, null, 255, dataModeEnum));
         JavaRDD<Collection<Writable>> rdd = data.map(recordReaderFunc);
-        JavaRDD<DataSet> ds = rdd.map(new CanovaDataSetFunction(-1, 1860, false));
+        JavaRDD<DataSet> ds = rdd.map(new DataVecDataSetFunction(-1, 1860, false));
     }
 
     public JavaPairRDD<Text, BytesWritable> getFile(){
