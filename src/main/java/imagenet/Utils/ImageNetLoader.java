@@ -148,6 +148,9 @@ public class ImageNetLoader extends NativeImageLoader implements Serializable{
     public void load()  {
         defineLabels(new File(BASE_DIR, labelFilePath));
         // Downloading a sample set of data if not available
+        /*this logic  is not strong
+          when  fullDir is exists and  it is empty. it make a issue.And reader can not be initialized. 
+          In fullDir , the function of downAndUator will ignore existing file.
         if (!fullDir.exists()) {
             fullDir.mkdir();
             log.info("Downloading {}...", FilenameUtils.getBaseName(fullDir.toString()));
@@ -158,18 +161,30 @@ public class ImageNetLoader extends NativeImageLoader implements Serializable{
             } catch (IOException | InterruptedException e) {
             e.printStackTrace();
         }
-
+        */
+         // Downloading a sample set of data if not available
+       if (!fullDir.exists()){
+            fullDir.mkdir();
+        }
+        CSVRecordReader reader = new CSVRecordReader(7, ",");
+        log.info("initialize {}  reader... ", FilenameUtils.getBaseName(fullDir.toString()));
+        try {
+            reader.initialize(new FileSplit(urlList));
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
+        int count = 0;
+        log.info("Downloading {}... ", FilenameUtils.getBaseName(fullDir.toString()));
         while(reader.hasNext()) {
-                Collection<Writable> val = reader.next();
-                Object url =  val.toArray()[1];
-                String fileName = val.toArray()[0] + "_" + count++ + ".jpg";
+            Collection<Writable> val = reader.next();
+            Object url =  val.toArray()[1];
+            String fileName = val.toArray()[0] + "_" + count++ + ".jpg";
+            downloadAndUntar(generateMaps(fileName, url.toString()), fullDir);
+            try{
                 downloadAndUntar(generateMaps(fileName, url.toString()), fullDir);
-                try{
-                    downloadAndUntar(generateMaps(fileName, url.toString()), fullDir);
-                }
-                catch(Exception e){
-                    e.printStackTrace();
-                }
+            }
+            catch(Exception e){
+                e.printStackTrace();
             }
         }
         FileSplit fileSplit = new FileSplit(fullDir, ALLOWED_FORMATS, rng);
