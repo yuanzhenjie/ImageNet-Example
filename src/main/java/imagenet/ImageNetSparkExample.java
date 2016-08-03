@@ -114,7 +114,7 @@ public class ImageNetSparkExample extends ImageNetMain {
         RecordReaderBytesFunction recordReaderFunc = new RecordReaderBytesFunction(
                     new ImageNetRecordReader(HEIGHT, WIDTH, CHANNELS, null, transform, normalizeValue, dataModeEnum));
 
-        JavaRDD<Collection<Writable>> rdd = filesAsBytes.map(recordReaderFunc);
+        JavaRDD<List<Writable>> rdd = filesAsBytes.map(recordReaderFunc);
         // Load all files in path
         if(numExamples==-1)
             data = rdd.map(new DataVecDataSetFunction(-1, numLabels, false));

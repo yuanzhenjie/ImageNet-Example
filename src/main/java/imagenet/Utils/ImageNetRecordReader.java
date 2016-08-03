@@ -63,7 +63,7 @@ public class ImageNetRecordReader extends BaseImageRecordReader {
     }
 
     @Override
-    public Collection<Writable> next() {
+    public List<Writable> next() {
         if(iter != null) {
             File image = iter.next();
 
@@ -72,14 +72,14 @@ public class ImageNetRecordReader extends BaseImageRecordReader {
 
             try {
                 invokeListeners(image);
-                return setUpRecord(imageLoader.asMatrix(image), image.getName());
+                return (List<Writable>) setUpRecord(imageLoader.asMatrix(image), image.getName());
             } catch (Exception e) {
                 e.printStackTrace();
             }
 
             Collection<Writable> ret = new ArrayList<>();
             if(iter.hasNext()) {
-                return ret;
+                return (List<Writable>) ret;
             }
             else {
                 if(iter.hasNext()) {
@@ -92,7 +92,7 @@ public class ImageNetRecordReader extends BaseImageRecordReader {
                     }
                 }
             }
-            return ret;
+            return (List<Writable>) ret;
         }
         else if(record != null) {
             hitImage = true;
@@ -121,9 +121,9 @@ public class ImageNetRecordReader extends BaseImageRecordReader {
     }
 
     @Override
-    public Collection<Writable> record(URI uri, DataInputStream dataInputStream ) throws IOException {
+    public List<Writable> record(URI uri, DataInputStream dataInputStream ) throws IOException {
         invokeListeners(uri);
         labelSetup();
-        return setUpRecord(imageLoader.asRowVector(dataInputStream), FilenameUtils.getName(uri.getPath()));
+        return (List<Writable>) setUpRecord(imageLoader.asRowVector(dataInputStream), FilenameUtils.getName(uri.getPath()));
     }
 }

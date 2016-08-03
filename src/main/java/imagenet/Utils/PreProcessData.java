@@ -17,13 +17,14 @@ import org.apache.spark.input.PortableDataStream;
 import org.datavec.api.writable.Writable;
 import org.datavec.spark.functions.data.FilesAsBytesFunction;
 import org.datavec.spark.functions.data.RecordReaderBytesFunction;
-import org.deeplearning4j.spark.canova.CanovaDataSetFunction;
+import org.deeplearning4j.spark.datavec.DataVecDataSetFunction;
 import org.deeplearning4j.spark.datavec.DataVecDataSetFunction;
 import org.nd4j.linalg.dataset.DataSet;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.Collection;
+import java.util.List;
 
 /**
  * Prep data as sequence files to group small files into larger batches to enable
@@ -105,7 +106,7 @@ public class PreProcessData {
         JavaPairRDD<Text, BytesWritable> data = sc.sequenceFile(inputPath, Text.class, BytesWritable.class);
         RecordReaderBytesFunction recordReaderFunc = new RecordReaderBytesFunction(
                 new ImageNetRecordReader(40, 40, 3, null, null, 255, dataModeEnum));
-        JavaRDD<Collection<Writable>> rdd = data.map(recordReaderFunc);
+        JavaRDD<List<Writable>> rdd = data.map(recordReaderFunc);
         JavaRDD<DataSet> ds = rdd.map(new DataVecDataSetFunction(-1, 1860, false));
     }
 
