@@ -1,0 +1,256 @@
+package org.deeplearning4j.examples.multigpu;
+
+import org.datavec.api.io.filters.BalancedPathFilter;
+import org.datavec.api.io.labels.ParentPathLabelGenerator;
+import org.datavec.api.split.FileSplit;
+import org.datavec.api.split.InputSplit;
+import org.datavec.image.loader.BaseImageLoader;
+import org.datavec.image.loader.NativeImageLoader;
+import org.datavec.image.recordreader.ImageRecordReader;
+import org.datavec.image.transform.ImageTransform;
+import org.datavec.image.transform.MultiImageTransform;
+import org.datavec.image.transform.ShowImageTransform;
+import org.deeplearning4j.datasets.datavec.RecordReaderDataSetIterator;
+import org.deeplearning4j.eval.Evaluation;
+import org.deeplearning4j.nn.api.OptimizationAlgorithm;
+import org.deeplearning4j.nn.conf.MultiLayerConfiguration;
+import org.deeplearning4j.nn.conf.NeuralNetConfiguration;
+import org.deeplearning4j.nn.conf.Updater;
+import org.deeplearning4j.nn.conf.inputs.InputType;
+import org.deeplearning4j.nn.conf.layers.ConvolutionLayer;
+import org.deeplearning4j.nn.conf.layers.DenseLayer;
+import org.deeplearning4j.nn.conf.layers.OutputLayer;
+import org.deeplearning4j.nn.conf.layers.SubsamplingLayer;
+import org.deeplearning4j.nn.multilayer.MultiLayerNetwork;
+import org.deeplearning4j.nn.weights.WeightInit;
+import org.deeplearning4j.optimize.listeners.ScoreIterationListener;
+import org.deeplearning4j.parallelism.ParallelWrapper;
+import org.deeplearning4j.ui.flow.FlowIterationListener;
+import org.deeplearning4j.ui.weights.HistogramIterationListener;
+import org.deeplearning4j.util.ModelSerializer;
+import org.nd4j.jita.conf.CudaEnvironment;
+import org.nd4j.linalg.activations.Activation;
+import org.nd4j.linalg.api.ndarray.INDArray;
+import org.nd4j.linalg.dataset.api.DataSet;
+import org.nd4j.linalg.dataset.api.DataSetPreProcessor;
+import org.nd4j.linalg.dataset.api.iterator.DataSetIterator;
+import org.nd4j.linalg.dataset.api.preprocessor.DataNormalization;
+import org.nd4j.linalg.dataset.api.preprocessor.NormalizerMinMaxScaler;
+import org.nd4j.linalg.factory.Nd4j;
+import org.nd4j.linalg.lossfunctions.LossFunctions;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.util.Random;
+
+/**
+ * Created by yuanzhenjie on 17/1/22.
+ */
+public class IsoftstoneGPUModelTrainer {
+
+    protected static final Logger log = LoggerFactory.getLogger(IsoftstoneGPUModelTrainer.class);
+
+    //Images are of format given by allowedExtension -
+    protected static final String [] allowedExtensions = BaseImageLoader.ALLOWED_FORMATS;
+
+    protected static final long seed = 12345;
+
+    public static final Random randNumGen = new Random(seed);
+
+    protected static int height = 50;
+    protected static int width = 50;
+    protected static int channels = 3;
+    protected static int numExamples = 80;
+    protected static int outputNum = 2;
+
+    public static void main(String[] args) throws Exception {
+        int nChannels = 3;
+        int iterations = 5;
+        int nEpochs = 1;
+        int rows = 50;
+        int cols = 50;
+
+        // temp workaround for backend initialization
+        Nd4j.create(1);
+
+        CudaEnvironment.getInstance().getConfiguration()
+                // key option enabled
+                .allowMultiGPU(true)
+
+                        // we're allowing larger memory caches
+                .setMaximumDeviceCache(4L * 1024L * 1024L * 1024L)
+
+                        // cross-device access is used for faster model averaging over pcie
+                .allowCrossDeviceAccess(true);
+
+        //DIRECTORY STRUCTURE:
+        //Images in the dataset have to be organized in directories by class/label.
+        //In this example there are ten images in three classes
+        //Here is the directory structure
+        //                                    parentDir
+        //                                  /    |     \
+        //                                 /     |      \
+        //                            labelA  labelB   labelC
+        //
+        //Set your data up like this so that labels from each label/class live in their own directory
+        //And these label/class directories live together in the parent directory
+        //
+        //
+//        File parentDir = new File(args[0]);
+        File parentDir = new File("/Users/yuanzhenjie/Documents/Images");
+        log.info("data path is {}",args[0]);
+        //Files in directories under the parent dir that have "allowed extensions" plit needs a random number generator for reproducibility when splitting the files into train and test
+        FileSplit filesInDir = new FileSplit(parentDir, allowedExtensions, randNumGen);
+
+        //You do not have to manually specify labels. This class (instantiated as below) will
+        //parse the parent dir and use the name of the subdirectories as label/class names
+        ParentPathLabelGenerator labelMaker = new ParentPathLabelGenerator();
+
+        //The balanced path filter gives you fine tune control of the min/max cases to load for each class
+        //Below is a bare bones version. Refer to javadocs for details
+        BalancedPathFilter pathFilter = new BalancedPathFilter(randNumGen, allowedExtensions, labelMaker);
+
+        //Split the image files into train and test. Specify the train test split as 80%,20%
+        InputSplit[] filesInDirSplit = filesInDir.sample(pathFilter, 80, 20);
+        InputSplit trainData = filesInDirSplit[0];
+        InputSplit testData = filesInDirSplit[1];
+
+        //Specifying a new record reader with the height and width you want the images to be resized to.
+        //Note that the images in this example are all of different size
+        //They will all be resized to the height and width specified below
+        ImageRecordReader recordReader = new ImageRecordReader(rows,cols,channels,labelMaker);
+
+        //Often there is a need to transforming images to artificially increase the size of the dataset
+        //DataVec has built in powerful features from OpenCV
+        //You can chain transformations as shown below, write your own classes that will say detect a face and crop to size
+        /*ImageTransform transform = new MultiImageTransform(randNumGen,
+            new CropImageTransform(10), new FlipImageTransform(),
+            new ScaleImageTransform(10), new WarpImageTransform(10));
+            */
+
+        //You can use the ShowImageTransform to view your images
+        //Code below gives you a look before and after, for a side by side comparison
+//        ImageTransform transform = new MultiImageTransform(randNumGen);
+        ImageTransform transform = new MultiImageTransform(randNumGen,new ShowImageTransform("Display - before "));
+
+        //Initialize the record reader with the train data and the transform chain
+        recordReader.initialize(trainData,transform);
+        //convert the record reader to an iterator for training - Refer to other examples for how to use an iterator
+        DataSetIterator dataIter = new RecordReaderDataSetIterator(recordReader, 100, 1, outputNum);
+
+
+        final DataNormalization dataNormalization = new NormalizerMinMaxScaler();
+        dataNormalization.fit(dataIter);
+        dataIter.reset();
+        dataIter.setPreProcessor(new DataSetPreProcessor() {
+            @Override
+            public void preProcess(DataSet dataSet) {
+                dataNormalization.transform(dataSet);
+            }
+        });
+        log.info("Build model....");
+        MultiLayerConfiguration.Builder builder = new NeuralNetConfiguration.Builder()
+                .seed(seed)
+                .iterations(iterations)
+                .regularization(true).l2(0.0005)
+                .learningRate(1e-3)//.biasLearningRate(0.02)
+                        //.learningRateDecayPolicy(LearningRatePolicy.Inverse).lrPolicyDecayRate(0.001).lrPolicyPower(0.75)
+                .weightInit(WeightInit.XAVIER)
+                .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
+                .updater(Updater.RMSPROP).momentum(0.9)
+                .list()
+                .layer(0, new ConvolutionLayer.Builder(5, 5)
+                        //nIn and nOut specify depth. nIn here is the nChannels and nOut is the number of filters to be applied
+                        .nIn(nChannels)
+                        .stride(1, 1)
+                        .nOut(20)
+
+                        .activation(Activation.RELU)
+                        .build())
+                .layer(1, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX)
+                        .kernelSize(2, 2)
+                        .stride(2, 2)
+                        .build())
+                .layer(2, new ConvolutionLayer.Builder(5, 5)
+                        //Note that nIn needed be specified in later layers
+                        .stride(1, 1)
+                        .nOut(50)
+                        .activation(Activation.IDENTITY)
+                        .build())
+                .layer(3, new SubsamplingLayer.Builder(SubsamplingLayer.PoolingType.MAX)
+                        .kernelSize(2,2)
+                        .stride(2,2)
+                        .build())
+                .layer(4, new DenseLayer.Builder().activation(Activation.RELU)
+                        .nOut(500).build())
+                .layer(5, new OutputLayer.Builder(LossFunctions.LossFunction.NEGATIVELOGLIKELIHOOD)
+                        .nOut(outputNum)
+                        .activation(Activation.SOFTMAX)
+                        .build())
+                .setInputType(InputType.convolutionalFlat(rows, cols, nChannels))
+                .backprop(true).pretrain(false);
+//        // The builder needs the dimensions of the image along with the number of channels. these are 28x28 images in one channel
+//        new ConvolutionLayerSetup(builder,rows,cols,nChannels);
+
+        MultiLayerNetwork network = new MultiLayerNetwork(builder.build());
+        network.setListeners(new ScoreIterationListener(1));
+        network.init();
+
+
+
+
+
+//        network.fit(dataIter);
+        // ParallelWrapper will take care of load balancing between GPUs.
+        ParallelWrapper wrapper = new ParallelWrapper.Builder(network)
+                // DataSets prefetching options. Set this value with respect to number of actual devices
+                .prefetchBuffer(6)/*拟定了在单个GPU内*/
+                        // set number of workers equal or higher then number of available devices. x1-x2 are good values to start with
+                .workers(1)
+                        // rare averaging improves performance, but might reduce model accuracy
+                .averagingFrequency(3)
+                        // if set to TRUE, on every averaging model score will be reported
+                .reportScoreAfterAveraging(true)
+                        // optinal parameter, set to false ONLY if your system has support P2P memory access across PCIe (hint: AWS do not support P2P)
+                .useLegacyAveraging(true)
+                .build();
+
+        network.setListeners(new ScoreIterationListener(1),new HistogramIterationListener(1),new FlowIterationListener(1)/*new ConvolutionalIterationListener(2),*//*new UpdateActivationIterationListener(1)*/);
+
+
+        for( int i=0; i<nEpochs; i++ ) {
+            long time1 = System.currentTimeMillis();
+
+            // Please note: we're feeding ParallelWrapper with iterator, not model directly
+//            wrapper.fit(mnistMultiEpochIterator);
+            wrapper.fit(dataIter);
+            long time2 = System.currentTimeMillis();
+            log.info("*** Completed epoch {}, time: {} ***", i, (time2 - time1));
+        }
+
+
+        log.info("Evaluate model....");
+        recordReader = new ImageRecordReader(rows,cols,channels,labelMaker);
+        recordReader.initialize(testData,transform);
+        DataSetIterator testDataIter = new RecordReaderDataSetIterator(recordReader, 100, 1, outputNum);
+        testDataIter.reset();
+        Evaluation evaluation = new Evaluation(outputNum);
+//        network.evaluate(testDataIter);
+//        log.info(evaluation.stats(true));
+        while(testDataIter.hasNext()) {
+            DataSet next = testDataIter.next();
+            INDArray output = network.output(next.getFeatures(),false);
+            evaluation.eval(next.getLabels(),output);
+        }
+//        NativeImageLoader imageLoader = new NativeImageLoader(rows,cols,3);
+//        INDArray image = imageLoader.asMatrix(new File("/data/benjamine/files/newSence/labelG/newSence_015Detection_992.jpeg"));
+
+//        log.info("model output 'image' result  is {}",network.output(image));
+
+        System.out.println(evaluation.stats());
+        ModelSerializer.writeModel(network, new File("model.zip"), true);
+        dataNormalization.save(new File("normalization.bin"),new File("normalization2.bin"));
+    }
+
+}
